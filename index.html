@@ -74,6 +74,7 @@ hr{border:0;height:1px;background:var(--bd);margin:16px 0;width:100%}
 }
 @media (min-width:980px){
  .home{grid-template-columns:1.25fr 1fr;max-width:none;align-items:start}.home .full{grid-column:1/-1}
+ .home.solo{grid-template-columns:1fr;max-width:680px}
  .res{grid-template-columns:360px 1fr;gap:24px}
  .side{position:sticky;top:calc(20px + env(safe-area-inset-top,0px))}
  .tools{display:flex;gap:12px;align-items:center}.tools .field{flex:1}
@@ -158,7 +159,7 @@ const copyBtn=v=>'<button class="ib" data-a="copy" data-v="'+v+'" title="'+esc(t
 // ── views ──
 function header(){const back=S.screen==1&&S.entries.length;
  return '<header>'+(back?'<button class="ib" data-a="back" aria-label="'+esc(t('back'))+'" title="'+esc(t('back'))+'">'+ic('Back')+'</button>':'')+'<div class="logo">'+ic('Calc')+'</div><div class="grow"><h1 class="t">'+esc(back?t('results'):t('name'))+'</h1><div class="mu sm t">'+esc(t('tagline'))+'</div></div><button class="ib" data-a="lang" aria-label="'+esc(t('language'))+'" title="'+esc(t('language'))+'">'+ic('Globe')+'</button></header>'}
-function home(){const has=S.entries.length;let h='<div class="home">';
+function home(){const has=S.entries.length;let h='<div class="home'+(has&&!S.busy?'':' solo')+'">';
  if(S.busy)h+='<div class="full">'+banner('RUN',t('reading'),t('reading_desc'))+'</div>';
  else if(S.homeErr)h+='<div class="full">'+banner('ERR',t('err_'+S.homeErr),t('err_'+S.homeErr+'_desc'),btn('pick',t('try_again')))+'</div>';
  h+='<div class="card"><div class="row"><div class="tile">'+ic('Upload')+'</div><div class="grow t"><h2>'+esc(t('import_title'))+'</h2><div class="mu sm">'+esc(t('import_desc'))+'</div></div></div>'+
@@ -202,10 +203,7 @@ async function readFile(f){S.busy=true;S.homeErr=null;S.screen=0;render();let p=
 function go(n){S.screen=n;if(n==1){if(location.hash!='#results')location.hash='results'}else if(location.hash)history.replaceState(null,'',location.pathname+location.search);render();window.scrollTo(0,0)}
 async function save(){S.saving=true;S.saveErr=false;S.excelErr=false;render();
  const data=new Blob([toCsv(S.entries,S.csvLang)],{type:'text/csv;charset=utf-8'});let ok=false;
- try{const d=window.claude&&await window.claude.use('downloads');
-  if(d){await d.save({filename:'REQ_report.csv',data});ok=true}
-  else{const a=document.createElement('a');a.href=URL.createObjectURL(data);a.download='REQ_report.csv';document.body.appendChild(a);a.click();a.remove();ok=true}}
- catch(e){if(e&&e.code=='declined'){S.saving=false;render();return}}
+ try{const a=document.createElement('a');a.href=URL.createObjectURL(data);a.download='REQ_report.csv';document.body.appendChild(a);a.click();a.remove();ok=true}catch(e){}
  S.saving=false;if(!ok)S.saveErr=true;render();if(ok)toast('saved')}
 async function copy(v,b){let ok=false;try{await navigator.clipboard.writeText(v);ok=true}catch(e){try{const x=document.createElement('textarea');x.value=v;document.body.appendChild(x);x.select();ok=document.execCommand('copy');x.remove()}catch(e2){}}
  if(ok){const h=b.innerHTML;b.innerHTML=ic('Check');b.style.color='var(--ok)';setTimeout(()=>{b.innerHTML=h;b.style.color=''},1400)}}
