@@ -19,7 +19,7 @@ header{display:flex;align-items:center;gap:14px;padding:20px 0}
 .logo{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--pr),var(--pr2));display:grid;place-items:center;color:#fff;flex:none}
 .logo svg{width:26px;height:26px}
 .grow{flex:1;min-width:0}
-h1{margin:0;font-size:18.4px;line-height:1.4}
+h1{margin:0;font-size:18.4px;line-height:1.4;word-break:break-word}
 .mu{color:var(--mu)}.sm{font-size:13.6px}.xs{font-size:12px}
 svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:20px;padding:18px;box-shadow:var(--sh)}
@@ -29,6 +29,7 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 .btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 18px;border-radius:16px;border:1px solid var(--bd);background:var(--card);cursor:pointer;font-weight:700;width:100%;transition:filter .15s,transform .1s}
 .btn:active{transform:scale(.98)}.btn:hover{filter:brightness(.97)}
 .btn.p{background:linear-gradient(135deg,var(--pr),var(--pr2));color:#fff;border:0}.btn.p:hover{filter:brightness(1.08)}
+.btn.d{background:var(--er);color:#fff;border:0}
 .btn:disabled{opacity:.55;cursor:default}
 .ib{width:40px;height:40px;border-radius:12px;border:0;background:transparent;display:grid;place-items:center;cursor:pointer;color:var(--mu);flex:none}
 .ib:hover{background:var(--in);color:var(--tx)}
@@ -44,11 +45,12 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 .btn .spin{border-color:rgba(255,255,255,.35);border-top-color:#fff;margin:0}
 @keyframes sp{to{transform:rotate(360deg)}}
 .stack{display:flex;flex-direction:column;gap:14px}
-.home{display:grid;gap:16px;max-width:680px;margin:0 auto}
+.home{display:grid;gap:16px;max-width:900px;margin:0 auto}
 .drop{margin-top:18px;border:2px dashed var(--bd);border-radius:16px;padding:22px 16px;text-align:center;color:var(--mu);transition:.15s}
 .drop.over{border-color:var(--pr);background:color-mix(in srgb,var(--pr) 8%,transparent);color:var(--pr)}
 .drop .btn{margin-top:12px}
-.lastc{cursor:pointer}.lastc:hover{border-color:var(--pr)}
+.dc{cursor:pointer}.dc:hover{border-color:var(--pr)}
+.dn{font-weight:700;word-break:break-word;unicode-bidi:plaintext;text-align:start;line-height:1.5}
 .big{font-size:34px;line-height:1.2;font-weight:700;font-variant-numeric:tabular-nums}
 hr{border:0;height:1px;background:var(--bd);margin:16px 0;width:100%}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center}
@@ -73,8 +75,6 @@ hr{border:0;height:1px;background:var(--bd);margin:16px 0;width:100%}
  .card{padding:22px}.big{font-size:40px}
 }
 @media (min-width:980px){
- .home{grid-template-columns:1.25fr 1fr;max-width:none;align-items:start}.home .full{grid-column:1/-1}
- .home.solo{grid-template-columns:1fr;max-width:680px}
  .res{grid-template-columns:360px 1fr;gap:24px}
  .side{position:sticky;top:calc(20px + env(safe-area-inset-top,0px))}
  .tools{display:flex;gap:12px;align-items:center}.tools .field{flex:1}
@@ -88,17 +88,20 @@ hr{border:0;height:1px;background:var(--bd);margin:16px 0;width:100%}
 <div class="wrap" id="app"></div>
 <div id="layer"></div>
 <div id="toast"></div>
-<input type="file" id="file" hidden>
+<input type="file" id="file" multiple hidden>
 <script>
 // ── i18n ──
 const D={
-en:{name:"REQ Calculator",drop:"or drag and drop your file here",csv_lang:"Notes language in Excel",lang_en:"English",lang_fr:"Français",open_excel:"Open in Excel",err_excel:"Excel couldn't open the file",err_excel_desc:"Install Excel, or use Export and open the file from your files.",tagline:"Add up the notes from your ATM log.",language:"Language",back:"Back",import_title:"Import a document",import_desc:"Choose the text file that holds your REQ log.",choose_file:"Choose file",last_title:"Continue where you left off",last_desc:"{n} entries · total {t}",reading:"Reading your file…",reading_desc:"This only takes a few seconds.",err_open:"We couldn't open that file",err_open_desc:"Check that the file still exists, then choose it again.",err_none:"No REQ found",err_none_desc:"This file has no REQ lines. Choose the right log file and try again.",try_again:"Try again",results:"Results",grand:"Grand total",grand_desc:"Counts valid entries only.",detected:"REQ found",valid:"Valid",verify:"To check",no_dispense:"No cash",verify_banner:"{n} to check",verify_banner_desc:"They stay out of the total until you fix them.",all_ok:"Everything adds up",all_ok_desc:"No entry needs a check.",search:"Search by number or time",f_all:"All",f_verify:"To check",empty_filter:"Nothing matches your search.",clear_filters:"Clear filters",export_csv:"Export to Excel (CSV)",exporting:"Saving…",saved:"File saved",updated:"Entry updated",err_save:"We couldn't save the file",err_save_desc:"Choose another location and try again.",copy_total:"Copy total",edit:"Edit",edit_title:"Edit the numbers",edit_desc:"Type the four note counts for this REQ.",note_n:"Note {n}",save:"Save",cancel:"Cancel",err_edit:"Enter four whole numbers.",original:"Original text",st_VALID:"Valid",st_VERIFY:"To check",st_NO_DISPENSE:"No cash",n_SUM:"The sum differs from NOTES PRESENTED. Check the numbers.",n_BAD:"Expected four numbers but found: {a}",n_DECLINED:"The ATM declined this request (code {a}). Nothing was paid out.",n_NOCASH:"No cash was requested.",n_NOLINE:"Cash was requested but no line of four numbers was found.",n_EDITED:"You edited this entry."},
-fr:{name:"Calculateur REQ",drop:"ou glissez votre fichier ici",csv_lang:"Langue des notes dans Excel",lang_en:"English",lang_fr:"Français",open_excel:"Ouvrir dans Excel",err_excel:"Excel n'a pas pu ouvrir le fichier",err_excel_desc:"Installez Excel, ou utilisez Exporter puis ouvrez le fichier depuis vos fichiers.",tagline:"Additionnez les billets de votre journal DAB.",language:"Langue",back:"Retour",import_title:"Importer un document",import_desc:"Choisissez le fichier texte qui contient votre journal REQ.",choose_file:"Choisir un fichier",last_title:"Reprendre où vous étiez",last_desc:"{n} entrées · total {t}",reading:"Lecture du fichier…",reading_desc:"Cela ne prend que quelques secondes.",err_open:"Impossible d'ouvrir ce fichier",err_open_desc:"Vérifiez que le fichier existe toujours, puis choisissez-le à nouveau.",err_none:"Aucun REQ trouvé",err_none_desc:"Ce fichier ne contient aucune ligne REQ. Choisissez le bon fichier et réessayez.",try_again:"Réessayer",results:"Résultats",grand:"Total général",grand_desc:"Seules les entrées valides sont comptées.",detected:"REQ trouvés",valid:"Valides",verify:"À vérifier",no_dispense:"Sans billets",verify_banner:"{n} à vérifier",verify_banner_desc:"Elles restent hors du total tant que vous ne les corrigez pas.",all_ok:"Tout est cohérent",all_ok_desc:"Aucune entrée à vérifier.",search:"Rechercher un numéro ou une heure",f_all:"Toutes",f_verify:"À vérifier",empty_filter:"Aucun résultat pour cette recherche.",clear_filters:"Effacer les filtres",export_csv:"Exporter vers Excel (CSV)",exporting:"Enregistrement…",saved:"Fichier enregistré",updated:"Entrée mise à jour",err_save:"Impossible d'enregistrer le fichier",err_save_desc:"Choisissez un autre emplacement et réessayez.",copy_total:"Copier le total",edit:"Modifier",edit_title:"Modifier les nombres",edit_desc:"Saisissez les quatre nombres de billets pour ce REQ.",note_n:"Cassette {n}",save:"Enregistrer",cancel:"Annuler",err_edit:"Saisissez quatre nombres entiers.",original:"Texte d'origine",st_VALID:"Valide",st_VERIFY:"À vérifier",st_NO_DISPENSE:"Sans billets",n_SUM:"La somme diffère de NOTES PRESENTED. Vérifiez les nombres.",n_BAD:"Quatre nombres attendus, trouvé : {a}",n_DECLINED:"Le DAB a refusé cette demande (code {a}). Aucun billet distribué.",n_NOCASH:"Aucun retrait demandé.",n_NOLINE:"Un retrait a été demandé mais aucune ligne de quatre nombres n'a été trouvée.",n_EDITED:"Vous avez modifié cette entrée."},
-ar:{name:"حاسبة REQ",drop:"أو اسحب الملف وأفلته هنا",csv_lang:"لغة الملاحظات في Excel",lang_en:"English",lang_fr:"Français",open_excel:"فتح في Excel",err_excel:"تعذّر فتح الملف في Excel",err_excel_desc:"ثبّت تطبيق Excel، أو استخدم التصدير ثم افتح الملف من ملفاتك.",tagline:"اجمع أوراق النقد من سجل جهاز الصرف.",language:"اللغة",back:"رجوع",import_title:"استيراد مستند",import_desc:"اختر الملف النصي الذي يحتوي سجل REQ.",choose_file:"اختيار ملف",last_title:"أكمل من حيث توقفت",last_desc:"{n} عملية · المجموع {t}",reading:"جارٍ قراءة الملف…",reading_desc:"يستغرق هذا بضع ثوانٍ فقط.",err_open:"تعذّر فتح هذا الملف",err_open_desc:"تأكد أن الملف ما زال موجودًا ثم اخترْه مرة أخرى.",err_none:"لم نجد أي REQ",err_none_desc:"لا يحتوي هذا الملف على أسطر REQ. اختر ملف السجل الصحيح وحاول مرة أخرى.",try_again:"حاول مرة أخرى",results:"النتائج",grand:"المجموع العام",grand_desc:"يشمل العمليات الصالحة فقط.",detected:"عدد REQ",valid:"صالحة",verify:"للتحقق",no_dispense:"بدون صرف",verify_banner:"{n} تحتاج تحققًا",verify_banner_desc:"تبقى خارج المجموع حتى تصحّحها.",all_ok:"كل شيء متطابق",all_ok_desc:"لا توجد عملية تحتاج تحققًا.",search:"ابحث برقم العملية أو الوقت",f_all:"الكل",f_verify:"للتحقق",empty_filter:"لا توجد نتائج مطابقة لبحثك.",clear_filters:"مسح التصفية",export_csv:"تصدير إلى Excel (CSV)",exporting:"جارٍ الحفظ…",saved:"تم حفظ الملف",updated:"تم تحديث العملية",err_save:"تعذّر حفظ الملف",err_save_desc:"اختر مكانًا آخر وحاول مرة أخرى.",copy_total:"نسخ المجموع",edit:"تعديل",edit_title:"تعديل الأرقام",edit_desc:"اكتب أعداد الأوراق الأربعة لهذه العملية.",note_n:"الفئة {n}",save:"حفظ",cancel:"إلغاء",err_edit:"أدخل أربعة أعداد صحيحة.",original:"النص الأصلي",st_VALID:"صالحة",st_VERIFY:"للتحقق",st_NO_DISPENSE:"بدون صرف",n_SUM:"المجموع يختلف عن NOTES PRESENTED. تحقق من الأرقام.",n_BAD:"كان المتوقع أربعة أرقام لكن وُجد: {a}",n_DECLINED:"رفض الجهاز هذا الطلب (الرمز {a}). لم تُصرف أي أوراق.",n_NOCASH:"لم يُطلب أي مبلغ.",n_EDITED:"قمت بتعديل هذه العملية.",n_NOLINE:"طُلب مبلغ لكن لم نجد سطر الأرقام الأربعة."}};
+en:{name:"REQ Calculator",drop:"or drag and drop your files here",csv_lang:"Notes language in Excel",lang_en:"English",lang_fr:"Français",open_excel:"Open in Excel",err_excel:"Excel couldn't open the file",err_excel_desc:"Install Excel, or use Export and open the file from your files.",tagline:"Add up the notes from your ATM log.",language:"Language",back:"Back",import_title:"Import documents",import_desc:"Choose one or more text files that hold your REQ logs.",choose_file:"Choose files",last_desc:"{n} entries · total {t}",reading:"Reading your files…",reading_desc:"This only takes a few seconds.",err_open:"We couldn't open that file",err_open_desc:"Check that the file still exists, then choose it again.",err_none:"No REQ found",err_none_desc:"This file has no REQ lines. Choose the right log file and try again.",try_again:"Try again",results:"Results",grand:"Grand total",grand_desc:"Counts valid entries only.",detected:"REQ found",valid:"Valid",verify:"To check",no_dispense:"No cash",verify_banner:"{n} to check",verify_banner_desc:"They stay out of the total until you fix them.",all_ok:"Everything adds up",all_ok_desc:"No entry needs a check.",search:"Search by number or time",f_all:"All",f_verify:"To check",empty_filter:"Nothing matches your search.",clear_filters:"Clear filters",export_csv:"Export to Excel (CSV)",exporting:"Saving…",saved:"File saved",updated:"Entry updated",err_save:"We couldn't save the file",err_save_desc:"Choose another location and try again.",copy_total:"Copy total",edit:"Edit",edit_title:"Edit the numbers",edit_desc:"Type the four note counts for this REQ.",note_n:"Note {n}",save:"Save",cancel:"Cancel",err_edit:"Enter four whole numbers.",original:"Original text",st_VALID:"Valid",st_VERIFY:"To check",st_NO_DISPENSE:"No cash",n_SUM:"The sum differs from NOTES PRESENTED. Check the numbers.",n_BAD:"Expected four numbers but found: {a}",n_DECLINED:"The ATM declined this request (code {a}). Nothing was paid out.",n_NOCASH:"No cash was requested.",n_NOLINE:"Cash was requested but no line of four numbers was found.",n_EDITED:"You edited this entry."},
+fr:{name:"Calculateur REQ",drop:"ou glissez vos fichiers ici",csv_lang:"Langue des notes dans Excel",lang_en:"English",lang_fr:"Français",open_excel:"Ouvrir dans Excel",err_excel:"Excel n'a pas pu ouvrir le fichier",err_excel_desc:"Installez Excel, ou utilisez Exporter puis ouvrez le fichier depuis vos fichiers.",tagline:"Additionnez les billets de votre journal DAB.",language:"Langue",back:"Retour",import_title:"Importer des documents",import_desc:"Choisissez un ou plusieurs fichiers texte contenant vos journaux REQ.",choose_file:"Choisir des fichiers",last_desc:"{n} entrées · total {t}",reading:"Lecture des fichiers…",reading_desc:"Cela ne prend que quelques secondes.",err_open:"Impossible d'ouvrir ce fichier",err_open_desc:"Vérifiez que le fichier existe toujours, puis choisissez-le à nouveau.",err_none:"Aucun REQ trouvé",err_none_desc:"Ce fichier ne contient aucune ligne REQ. Choisissez le bon fichier et réessayez.",try_again:"Réessayer",results:"Résultats",grand:"Total général",grand_desc:"Seules les entrées valides sont comptées.",detected:"REQ trouvés",valid:"Valides",verify:"À vérifier",no_dispense:"Sans billets",verify_banner:"{n} à vérifier",verify_banner_desc:"Elles restent hors du total tant que vous ne les corrigez pas.",all_ok:"Tout est cohérent",all_ok_desc:"Aucune entrée à vérifier.",search:"Rechercher un numéro ou une heure",f_all:"Toutes",f_verify:"À vérifier",empty_filter:"Aucun résultat pour cette recherche.",clear_filters:"Effacer les filtres",export_csv:"Exporter vers Excel (CSV)",exporting:"Enregistrement…",saved:"Fichier enregistré",updated:"Entrée mise à jour",err_save:"Impossible d'enregistrer le fichier",err_save_desc:"Choisissez un autre emplacement et réessayez.",copy_total:"Copier le total",edit:"Modifier",edit_title:"Modifier les nombres",edit_desc:"Saisissez les quatre nombres de billets pour ce REQ.",note_n:"Cassette {n}",save:"Enregistrer",cancel:"Annuler",err_edit:"Saisissez quatre nombres entiers.",original:"Texte d'origine",st_VALID:"Valide",st_VERIFY:"À vérifier",st_NO_DISPENSE:"Sans billets",n_SUM:"La somme diffère de NOTES PRESENTED. Vérifiez les nombres.",n_BAD:"Quatre nombres attendus, trouvé : {a}",n_DECLINED:"Le DAB a refusé cette demande (code {a}). Aucun billet distribué.",n_NOCASH:"Aucun retrait demandé.",n_NOLINE:"Un retrait a été demandé mais aucune ligne de quatre nombres n'a été trouvée.",n_EDITED:"Vous avez modifié cette entrée."},
+ar:{name:"حاسبة REQ",drop:"أو اسحب الملفات وأفلتها هنا",csv_lang:"لغة الملاحظات في Excel",lang_en:"English",lang_fr:"Français",open_excel:"فتح في Excel",err_excel:"تعذّر فتح الملف في Excel",err_excel_desc:"ثبّت تطبيق Excel، أو استخدم التصدير ثم افتح الملف من ملفاتك.",tagline:"اجمع أوراق النقد من سجل جهاز الصرف.",language:"اللغة",back:"رجوع",import_title:"استيراد مستندات",import_desc:"اختر ملفًا نصيًا واحدًا أو أكثر يحتوي سجلات REQ.",choose_file:"اختيار ملفات",last_desc:"{n} عملية · المجموع {t}",reading:"جارٍ قراءة الملفات…",reading_desc:"يستغرق هذا بضع ثوانٍ فقط.",err_open:"تعذّر فتح هذا الملف",err_open_desc:"تأكد أن الملف ما زال موجودًا ثم اخترْه مرة أخرى.",err_none:"لم نجد أي REQ",err_none_desc:"لا يحتوي هذا الملف على أسطر REQ. اختر ملف السجل الصحيح وحاول مرة أخرى.",try_again:"حاول مرة أخرى",results:"النتائج",grand:"المجموع العام",grand_desc:"يشمل العمليات الصالحة فقط.",detected:"عدد REQ",valid:"صالحة",verify:"للتحقق",no_dispense:"بدون صرف",verify_banner:"{n} تحتاج تحققًا",verify_banner_desc:"تبقى خارج المجموع حتى تصحّحها.",all_ok:"كل شيء متطابق",all_ok_desc:"لا توجد عملية تحتاج تحققًا.",search:"ابحث برقم العملية أو الوقت",f_all:"الكل",f_verify:"للتحقق",empty_filter:"لا توجد نتائج مطابقة لبحثك.",clear_filters:"مسح التصفية",export_csv:"تصدير إلى Excel (CSV)",exporting:"جارٍ الحفظ…",saved:"تم حفظ الملف",updated:"تم تحديث العملية",err_save:"تعذّر حفظ الملف",err_save_desc:"اختر مكانًا آخر وحاول مرة أخرى.",copy_total:"نسخ المجموع",edit:"تعديل",edit_title:"تعديل الأرقام",edit_desc:"اكتب أعداد الأوراق الأربعة لهذه العملية.",note_n:"الفئة {n}",save:"حفظ",cancel:"إلغاء",err_edit:"أدخل أربعة أعداد صحيحة.",original:"النص الأصلي",st_VALID:"صالحة",st_VERIFY:"للتحقق",st_NO_DISPENSE:"بدون صرف",n_SUM:"المجموع يختلف عن NOTES PRESENTED. تحقق من الأرقام.",n_BAD:"كان المتوقع أربعة أرقام لكن وُجد: {a}",n_DECLINED:"رفض الجهاز هذا الطلب (الرمز {a}). لم تُصرف أي أوراق.",n_NOCASH:"لم يُطلب أي مبلغ.",n_EDITED:"قمت بتعديل هذه العملية.",n_NOLINE:"طُلب مبلغ لكن لم نجد سطر الأرقام الأربعة."}};
 const LANGS=[["ar","العربية"],["en","English"],["fr","Français"]];
-Object.assign(D.en,{signin:"Sign in",account:"Account",signout:"Sign out",acct_desc:"Your last session syncs across every device where you sign in with this account. Signing out clears it from this browser.",synced:"Synced with your account",sync_err:"Couldn't sync. Check your connection.",login_err:"Sign-in failed. Try again."});
-Object.assign(D.fr,{signin:"Connexion",account:"Compte",signout:"Se déconnecter",acct_desc:"Votre dernière session se synchronise sur chaque appareil connecté à ce compte. La déconnexion l'efface de ce navigateur.",synced:"Synchronisé avec votre compte",sync_err:"Synchronisation impossible. Vérifiez votre connexion.",login_err:"Échec de la connexion. Réessayez."});
-Object.assign(D.ar,{signin:"تسجيل الدخول",account:"الحساب",signout:"تسجيل الخروج",acct_desc:"تتزامن آخر جلسة لك على كل جهاز تدخل منه بهذا الحساب. وتسجيل الخروج يمسحها من هذا المتصفح.",synced:"تمت المزامنة مع حسابك",sync_err:"تعذّرت المزامنة. تحقق من اتصالك.",login_err:"فشل تسجيل الدخول. حاول مرة أخرى."});
+Object.assign(D.en,{signin:"Sign in",account:"Account",signout:"Sign out",acct_desc:"Your documents sync across every device where you sign in with this account. Signing out clears them from this browser (they stay in your account).",synced:"Synced with your account",sync_err:"Couldn't sync. Check your connection.",login_err:"Sign-in failed. Try again."});
+Object.assign(D.fr,{signin:"Connexion",account:"Compte",signout:"Se déconnecter",acct_desc:"Vos documents se synchronisent sur chaque appareil connecté à ce compte. La déconnexion les efface de ce navigateur (ils restent dans votre compte).",synced:"Synchronisé avec votre compte",sync_err:"Synchronisation impossible. Vérifiez votre connexion.",login_err:"Échec de la connexion. Réessayez."});
+Object.assign(D.ar,{signin:"تسجيل الدخول",account:"الحساب",signout:"تسجيل الخروج",acct_desc:"تتزامن مستنداتك على كل جهاز تدخل منه بهذا الحساب. وتسجيل الخروج يمسحها من هذا المتصفح (وتبقى محفوظة في حسابك).",synced:"تمت المزامنة مع حسابك",sync_err:"تعذّرت المزامنة. تحقق من اتصالك.",login_err:"فشل تسجيل الدخول. حاول مرة أخرى."});
+Object.assign(D.en,{docs_title:"Your documents",docs_search:"Search documents by name",docs_none:"No document matches that name.",del:"Delete",del_title:"Delete this document?",del_desc:"“{n}” will be removed from your account on every device.",deleted:"Document deleted",imported:"{n} document(s) imported",skipped:"Skipped (no REQ found): {names}",prev_doc:"Previous session"});
+Object.assign(D.fr,{docs_title:"Vos documents",docs_search:"Rechercher un document par nom",docs_none:"Aucun document ne correspond à ce nom.",del:"Supprimer",del_title:"Supprimer ce document ?",del_desc:"« {n} » sera supprimé de votre compte sur tous les appareils.",deleted:"Document supprimé",imported:"{n} document(s) importé(s)",skipped:"Ignorés (aucun REQ trouvé) : {names}",prev_doc:"Session précédente"});
+Object.assign(D.ar,{docs_title:"مستنداتك",docs_search:"ابحث عن مستند بالاسم",docs_none:"لا يوجد مستند بهذا الاسم.",del:"حذف",del_title:"حذف هذا المستند؟",del_desc:"سيُحذف «{n}» من حسابك على جميع الأجهزة.",deleted:"تم حذف المستند",imported:"تم استيراد {n} مستند",skipped:"تم تخطي (لا يوجد REQ): {names}",prev_doc:"الجلسة السابقة"});
 // ── Engine (port of Engine.kt) ──
 const SEP='\\s*[-–—,;|]\\s*';
 const R={ESC:/\x1B\[[0-9;]*[A-Za-z]|\x1B[()][0-9A-Za-z]|\x1B[A-Za-z]\d*|[\x00-\x08\x0B\x0C\x0E-\x1F]/g,REQ:/REQ\s*:\s*([\d.,]+)/,
@@ -142,37 +145,58 @@ Copy:["M9 9h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1z"
 CheckCircle:["M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z","M8 12.5l2.8 2.8L16 9.5"],Search:["M11 4a7 7 0 1 0 0 14a7 7 0 0 0 0-14z","M16 16l4 4"],Back:["M19 12H5","M11 6l-6 6 6 6"],Chevron:["M9 6l6 6-6 6"],
 Globe:["M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z","M3 12h18","M12 3c2.5 2.5 3.5 5.5 3.5 9s-1 6.5-3.5 9c-2.5-2.5-3.5-5.5-3.5-9s1-6.5 3.5-9z"],Edit:["M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z","M13.5 6.5l4 4"],
 Alert:["M12 3L2.5 20h19L12 3z","M12 10v4","M12 17.2v.01"],Ban:["M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z","M5.6 5.6l12.8 12.8"],File:["M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z","M14 3v5h5","M9 13h6","M9 17h4"],
+Trash:["M4 7h16","M10 11v6","M14 11v6","M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13","M9 7V4h6v3"],
 Table:["M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z","M4 10h16","M4 15h16","M10 4v16"],
 Calc:["M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z","M8 7.5h8","M8.5 12h.01","M12 12h.01","M15.5 12h.01","M8.5 16h.01","M12 16h.01","M15.5 16h.01"]};
 const ic=n=>'<svg class="i" viewBox="0 0 24 24" aria-hidden="true">'+P[n].map(d=>'<path d="'+d+'"/>').join('')+'</svg>';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
 const num=n=>n.toLocaleString('en-US'),amt=d=>d.toLocaleString('en-US',{maximumFractionDigits:2});
 let LS=null;try{LS=window.localStorage}catch(e){}
-const sget=k=>{try{return LS&&LS.getItem(k)}catch(e){return null}},sset=(k,v)=>{try{LS&&LS.setItem(k,v)}catch(e){}};
-function loadEntries(){try{const a=JSON.parse(sget('entries')||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}}
+const sget=k=>{try{return LS&&LS.getItem(k)}catch(e){return null}},sset=(k,v)=>{try{LS&&LS.setItem(k,v)}catch(e){}},sdel=k=>{try{LS&&LS.removeItem(k)}catch(e){}};
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function jget(k,def){try{const v=JSON.parse(sget(k));return v==null?def:v}catch(e){return def}}
 const detect=()=>{const l=(navigator.language||'ar').slice(0,2);return D[l]?l:'ar'};
 // ── state ──
-const S={entries:loadEntries(),screen:0,q:'',onlyV:false,csvLang:'fr',lang:sget('lang')||detect(),busy:false,saving:false,homeErr:null,saveErr:false,excelErr:false,sheet:null,idx:0};
+let TS=+sget('ts')||0,pt;
+const S={docs:[],del:{},cur:null,entries:[],screen:0,q:'',dq:'',onlyV:false,csvLang:'fr',lang:sget('lang')||detect(),busy:false,saving:false,homeErr:null,homeInfo:null,saveErr:false,excelErr:false,sheet:null,idx:0,delId:null,fb:false,user:null};
 const t=(k,a)=>{let s=D[S.lang][k]??D.en[k]??k;for(const x in a||{})s=s.replace('{'+x+'}',a[x]);return s};
 const $=s=>document.querySelector(s);
-function persist(){TS=Date.now();sset('entries',JSON.stringify(S.entries));sset('ts',String(TS));push()}
-let tt;function toast(k){const el=$('#toast');el.innerHTML='<div class="toast t" role="status">'+esc(t(k))+'</div>';clearTimeout(tt);tt=setTimeout(()=>el.innerHTML='',2400)}
+// load saved documents (and migrate the old single-session storage)
+(function(){let d=jget('docs',null);
+ if(!Array.isArray(d)){d=[];const old=jget('entries',[]);
+  if(Array.isArray(old)&&old.length){d=[{id:'legacy',name:t('prev_doc'),ts:+sget('ts')||Date.now(),entries:old}];sset('docs',JSON.stringify(d))}}
+ S.docs=d.filter(x=>x&&x.id&&Array.isArray(x.entries));
+ const dl=jget('del',{});S.del=dl&&typeof dl=='object'&&!Array.isArray(dl)?dl:{};
+ const c=sget('cur'),cd=S.docs.find(x=>x.id==c);if(cd){S.cur=cd.id;S.entries=cd.entries}})();
+const curDoc=()=>S.docs.find(x=>x.id==S.cur);
+function saveAll(){TS=Date.now();sset('docs',JSON.stringify(S.docs));sset('del',JSON.stringify(S.del));sset('ts',String(TS));push()}
+function persist(){const d=curDoc();if(d){d.entries=S.entries;d.ts=Date.now()}saveAll()}
+let tt;function toast(k,a){const el=$('#toast');el.innerHTML='<div class="toast t" role="status">'+esc(t(k,a))+'</div>';clearTimeout(tt);tt=setTimeout(()=>el.innerHTML='',2400)}
 function banner(kind,title,desc,act){const c={RUN:'var(--pr)',ERR:'var(--er)',OK:'var(--ok)'}[kind];
  return '<div class="ban" style="--c:'+c+'" role="'+(kind=='ERR'?'alert':'status')+'">'+(kind=='RUN'?'<div class="spin"></div>':ic(kind=='OK'?'CheckCircle':'Alert'))+'<div class="grow t"><b>'+esc(title)+'</b>'+(desc?'<span class="mu sm">'+esc(desc)+'</span>':'')+(act||'')+'</div></div>'}
-const btn=(a,label,o={})=>'<button class="btn '+(o.p?'p':'')+'" data-a="'+a+'"'+(o.dis?' disabled':'')+'>'+(o.load?'<span class="spin"></span>':o.icon?ic(o.icon):'')+'<span class="t">'+esc(label)+'</span></button>';
+const btn=(a,label,o={})=>'<button class="btn '+(o.p?'p':'')+(o.d?'d':'')+'" data-a="'+a+'"'+(o.dis?' disabled':'')+'>'+(o.load?'<span class="spin"></span>':o.icon?ic(o.icon):'')+'<span class="t">'+esc(label)+'</span></button>';
 const copyBtn=v=>'<button class="ib" data-a="copy" data-v="'+v+'" title="'+esc(t('copy_total'))+'" aria-label="'+esc(t('copy_total'))+'">'+ic('Copy')+'</button>';
 // ── views ──
-function header(){const back=S.screen==1&&S.entries.length;
- return '<header>'+(back?'<button class="ib" data-a="back" aria-label="'+esc(t('back'))+'" title="'+esc(t('back'))+'">'+ic('Back')+'</button>':'')+'<div class="logo">'+ic('Calc')+'</div><div class="grow"><h1 class="t">'+esc(back?t('results'):t('name'))+'</h1><div class="mu sm t">'+esc(t('tagline'))+'</div></div><button class="ib" data-a="lang" aria-label="'+esc(t('language'))+'" title="'+esc(t('language'))+'">'+ic('Globe')+'</button>'+acctBtn()+'</header>'}
+function header(){const back=S.screen==1&&S.entries.length,cd=curDoc();
+ return '<header>'+(back?'<button class="ib" data-a="back" aria-label="'+esc(t('back'))+'" title="'+esc(t('back'))+'">'+ic('Back')+'</button>':'')+'<div class="logo">'+ic('Calc')+'</div><div class="grow"><h1 class="t">'+esc(back&&cd?cd.name:t('name'))+'</h1><div class="mu sm t">'+esc(back?t('results'):t('tagline'))+'</div></div><button class="ib" data-a="lang" aria-label="'+esc(t('language'))+'" title="'+esc(t('language'))+'">'+ic('Globe')+'</button>'+acctBtn()+'</header>'}
 function acctBtn(){if(!S.fb)return'';if(!S.user)return'<button class="chip on" data-a="login">'+esc(t('signin'))+'</button>';
  const u=S.user;return'<button class="ib av" data-a="acct" aria-label="'+esc(t('account'))+'" title="'+esc(u.email)+'">'+(u.photo?'<img src="'+esc(u.photo)+'" alt="" referrerpolicy="no-referrer">':esc((u.name||u.email||'?').charAt(0).toUpperCase()))+'</button>'}
-function home(){const has=S.entries.length;let h='<div class="home'+(has&&!S.busy?'':' solo')+'">';
- if(S.busy)h+='<div class="full">'+banner('RUN',t('reading'),t('reading_desc'))+'</div>';
- else if(S.homeErr)h+='<div class="full">'+banner('ERR',t('err_'+S.homeErr),t('err_'+S.homeErr+'_desc'),btn('pick',t('try_again')))+'</div>';
+function home(){const has=S.docs.length;let h='<div class="home">';
+ if(S.busy)h+=banner('RUN',t('reading'),t('reading_desc'));
+ else if(S.homeErr)h+=banner('ERR',t('err_'+S.homeErr),t('err_'+S.homeErr+'_desc'),btn('pick',t('try_again')));
+ else if(S.homeInfo)h+=banner('OK',t('imported',{n:S.homeInfo.ok}),S.homeInfo.skipped.length?t('skipped',{names:S.homeInfo.skipped.join(', ')}):'');
  h+='<div class="card"><div class="row"><div class="tile">'+ic('Upload')+'</div><div class="grow t"><h2>'+esc(t('import_title'))+'</h2><div class="mu sm">'+esc(t('import_desc'))+'</div></div></div>'+
  '<div class="drop t" id="drop">'+esc(t('drop'))+btn('pick',t('choose_file'),{p:1,icon:'Upload',dis:S.busy,load:S.busy})+'</div></div>';
- if(has&&!S.busy)h+='<div class="card lastc row" data-a="last" tabindex="0" role="button"><div class="tile">'+ic('File')+'</div><div class="grow t"><b>'+esc(t('last_title'))+'</b><div class="mu sm">'+esc(t('last_desc',{n:S.entries.length,t:num(summarize(S.entries).grand)}))+'</div></div><span class="mu">'+ic('Chevron')+'</span></div>';
+ if(has)h+='<section class="card"><div class="row"><div class="tile">'+ic('File')+'</div><div class="grow t"><h2>'+esc(t('docs_title'))+' ('+S.docs.length+')</h2></div></div>'+
+  '<label class="field" style="margin-top:14px">'+ic('Search')+'<input id="dq" type="search" value="'+esc(S.dq)+'" placeholder="'+esc(t('docs_search'))+'" aria-label="'+esc(t('docs_search'))+'"></label><div class="list" id="dlist" style="margin-top:14px"></div></section>';
  return h+'</div>'}
+function docCard(d){const s=summarize(d.entries),dt=new Date(d.ts).toLocaleString(S.lang=='ar'?'ar-u-nu-latn':S.lang,{dateStyle:'medium',timeStyle:'short'}),id=esc(d.id);
+ return '<article class="card ent dc" style="--c:'+(s.verify?'var(--er)':'var(--pr)')+'" data-a="open" data-id="'+id+'" tabindex="0" role="button"><div class="row"><div class="tile">'+ic('File')+'</div><div class="grow"><div class="dn">'+esc(d.name)+'</div><div class="mu sm t">'+esc(t('last_desc',{n:s.detected,t:num(s.grand)}))+'</div><div class="mu xs">'+esc(dt)+'</div></div>'+
+ (s.verify?'<span class="badge t" style="--c:var(--er)">'+esc(s.verify+' · '+t('verify'))+'</span>':'')+
+ '<button class="ib" data-a="deldoc" data-id="'+id+'" title="'+esc(t('del'))+'" aria-label="'+esc(t('del'))+'">'+ic('Trash')+'</button></div></article>'}
+function dlist(){const el=$('#dlist');if(!el)return;const q=S.dq.trim().toLowerCase();
+ const sh=[...S.docs].sort((a,b)=>b.ts-a.ts).filter(d=>!q||d.name.toLowerCase().includes(q));
+ el.innerHTML=sh.length?sh.map(docCard).join(''):'<div class="card empty t"><p class="mu" style="margin:0">'+esc(t('docs_none'))+'</p></div>'}
 function results(){const s=summarize(S.entries),st=(n,l,c)=>'<div><b style="color:'+c+'">'+n+'</b><span class="xs mu t">'+esc(l)+'</span></div>';
  return '<div class="res"><aside class="side"><div class="card"><div class="row"><div class="grow t"><div class="mu sm">'+esc(t('grand'))+'</div><div class="big ltr">'+num(s.grand)+'</div><div class="mu sm">'+esc(t('grand_desc'))+'</div></div>'+copyBtn(s.grand)+'</div><hr>'+
  '<div class="stats">'+st(s.detected,t('detected'),'var(--tx)')+st(s.valid,t('valid'),'var(--ok)')+st(s.verify,t('verify'),s.verify?'var(--er)':'var(--mu)')+st(s.noDispense,t('no_dispense'),'var(--mu)')+'</div>'+
@@ -191,10 +215,13 @@ function entry(e,i){const col={VALID:'var(--ok)',VERIFY:'var(--er)',NO_DISPENSE:
 function list(){const q=S.q.trim(),sh=S.entries.map((e,i)=>[e,i]).filter(([e])=>(!q||e.ref.includes(q)||e.time.includes(q)||String(e.total)==q)&&(!S.onlyV||e.status=='VERIFY'));
  $('#list').innerHTML=sh.length?sh.map(([e,i])=>entry(e,i)).join(''):'<div class="card empty t"><p class="mu" style="margin-top:0">'+esc(t('empty_filter'))+'</p>'+btn('clear',t('clear_filters'))+'</div>'}
 function render(){document.documentElement.lang=S.lang;document.title=t('name');
- $('#app').innerHTML=header()+(S.screen==1&&S.entries.length?results():home());
- if(S.screen==1&&S.entries.length){filters();list()}
+ const res=S.screen==1&&S.entries.length;
+ $('#app').innerHTML=header()+(res?results():home());
+ if(res){filters();list()}else dlist();
  const L=$('#layer');
  if(S.sheet=='lang')L.innerHTML='<div class="ov" data-a="close"><div class="sheet" role="dialog" aria-modal="true"><h2 class="t" style="margin:0">'+esc(t('language'))+'</h2>'+LANGS.map(([c,n])=>'<button class="lang '+(c==S.lang?'on':'')+'" data-a="setlang" data-v="'+c+'"><span>'+n+'</span>'+(c==S.lang?ic('Check'):'')+'</button>').join('')+'</div></div>';
+ else if(S.sheet=='del'){const d=S.docs.find(x=>x.id==S.delId);
+  L.innerHTML=d?'<div class="ov" data-a="close"><div class="sheet" role="dialog" aria-modal="true"><h2 class="t" style="margin:0">'+esc(t('del_title'))+'</h2><div class="mu sm t">'+esc(t('del_desc',{n:d.name}))+'</div><div class="g2">'+btn('close',t('cancel'))+btn('confirmdel',t('del'),{d:1,icon:'Trash'})+'</div></div></div>':''}
  else if(S.sheet=='edit'&&S.entries[S.idx]){const e=S.entries[S.idx];
   L.innerHTML='<div class="ov" data-a="close"><div class="sheet" role="dialog" aria-modal="true"><h2 class="t" style="margin:0">'+esc(t('edit_title'))+'</h2><div class="mu sm t">'+esc(t('edit_desc'))+'</div><div class="g2">'+
   [0,1,2,3].map(i=>'<label><span class="mu sm t">'+esc(t('note_n',{n:i+1}))+'</span><div class="field"><input class="n" inputmode="numeric" maxlength="7" placeholder="0" value="'+(e.numbers[i]??'')+'"></div></label>').join('')+
@@ -204,15 +231,32 @@ function render(){document.documentElement.lang=S.lang;document.title=t('name');
   L.innerHTML='<div class="ov" data-a="close"><div class="sheet" role="dialog" aria-modal="true"><h2 class="t" style="margin:0">'+esc(t('account'))+'</h2><div class="who"><div class="av ib">'+(u.photo?'<img src="'+esc(u.photo)+'" alt="" referrerpolicy="no-referrer">':esc((u.name||u.email||'?').charAt(0).toUpperCase()))+'</div><div class="grow"><b class="t">'+esc(u.name)+'</b><div class="mu sm ltr">'+esc(u.email)+'</div></div></div><div class="mu sm t">'+esc(t('acct_desc'))+'</div><div class="g2">'+btn('close',t('cancel'))+btn('logout',t('signout'),{p:1})+'</div></div></div>'}
  else L.innerHTML=''}
 // ── actions ──
-async function readFile(f){S.busy=true;S.homeErr=null;S.screen=0;render();let p=null;
- try{const b=new Uint8Array(await f.arrayBuffer());let s='';for(let i=0;i<b.length;i+=32768)s+=String.fromCharCode.apply(null,b.subarray(i,i+32768));p=parse(s)}catch(e){p=null}
+function uniqName(n){const names=new Set(S.docs.map(d=>d.name));if(!names.has(n))return n;
+ const m=/^(.*?)(\.[^.]*)?$/.exec(n),b=m[1],x=m[2]||'';let i=2;while(names.has(b+' ('+i+')'+x))i++;return b+' ('+i+')'+x}
+async function readFiles(files){files=[...files];if(!files.length)return;
+ S.busy=true;S.homeErr=null;S.homeInfo=null;S.screen=0;render();
+ let ok=0,last=null,skipped=[],failed=0;
+ for(const f of files){
+  try{const b=new Uint8Array(await f.arrayBuffer());let s='';for(let i=0;i<b.length;i+=32768)s+=String.fromCharCode.apply(null,b.subarray(i,i+32768));
+   const p=parse(s);
+   if(!p.length){skipped.push(f.name);continue}
+   const d={id:uid(),name:uniqName(f.name),ts:Date.now(),entries:p};S.docs.push(d);ok++;last=d}
+  catch(e){failed++;skipped.push(f.name)}}
  S.busy=false;
- if(!p)S.homeErr='open';else if(!p.length)S.homeErr='none';else{S.entries=p;S.q='';S.onlyV=false;S.saveErr=false;persist();go(1);return}
- render()}
+ if(!ok){S.homeErr=failed==files.length?'open':'none';render();return}
+ saveAll();
+ if(files.length==1){openDoc(last.id);return}
+ S.homeInfo={ok,skipped};render()}
+function openDoc(id){const d=S.docs.find(x=>x.id==id);if(!d)return;
+ S.cur=id;sset('cur',id);S.entries=d.entries;S.q='';S.onlyV=false;S.saveErr=false;S.excelErr=false;S.homeErr=null;S.homeInfo=null;go(1)}
+function delDoc(){const id=S.delId;S.docs=S.docs.filter(d=>d.id!=id);S.del[id]=Date.now();
+ if(S.cur==id){S.cur=null;S.entries=[];sdel('cur')}
+ S.sheet=null;S.delId=null;saveAll();render();toast('deleted')}
 function go(n){S.screen=n;if(n==1){if(location.hash!='#results')location.hash='results'}else if(location.hash)history.replaceState(null,'',location.pathname+location.search);render();window.scrollTo(0,0)}
 async function save(){S.saving=true;S.saveErr=false;S.excelErr=false;render();
+ const cd=curDoc(),base=(cd?cd.name.replace(/\.[^.]*$/,''):'REQ_report').replace(/[\\/:*?"<>|]/g,'_')||'REQ_report';
  const data=new Blob([toCsv(S.entries,S.csvLang)],{type:'text/csv;charset=utf-8'});let ok=false;
- try{const a=document.createElement('a');a.href=URL.createObjectURL(data);a.download='REQ_report.csv';document.body.appendChild(a);a.click();a.remove();ok=true}catch(e){}
+ try{const a=document.createElement('a');a.href=URL.createObjectURL(data);a.download=base+'.csv';document.body.appendChild(a);a.click();a.remove();ok=true}catch(e){}
  S.saving=false;if(!ok)S.saveErr=true;render();if(ok)toast('saved')}
 async function copy(v,b){let ok=false;try{await navigator.clipboard.writeText(v);ok=true}catch(e){try{const x=document.createElement('textarea');x.value=v;document.body.appendChild(x);x.select();ok=document.execCommand('copy');x.remove()}catch(e2){}}
  if(ok){const h=b.innerHTML;b.innerHTML=ic('Check');b.style.color='var(--ok)';setTimeout(()=>{b.innerHTML=h;b.style.color=''},1400)}}
@@ -221,7 +265,8 @@ function saveEdit(){const v=[...document.querySelectorAll('#layer .n')].map(i=>i
  S.entries[S.idx]=edit(S.entries[S.idx],v.map(Number));persist();S.sheet=null;render();toast('updated')}
 document.addEventListener('click',ev=>{const el=ev.target.closest('[data-a]');if(!el)return;const a=el.dataset.a;
  if(a=='close'&&el.classList.contains('ov')&&ev.target!==el)return;
- if(a=='pick')$('#file').click();else if(a=='last')go(1);else if(a=='back')go(0);else if(a=='lang'){S.sheet='lang';render()}
+ if(a=='pick')$('#file').click();else if(a=='open')openDoc(el.dataset.id);else if(a=='back')go(0);else if(a=='lang'){S.sheet='lang';render()}
+ else if(a=='deldoc'){S.delId=el.dataset.id;S.sheet='del';render()}else if(a=='confirmdel')delDoc()
  else if(a=='setlang'){S.lang=el.dataset.v;sset('lang',S.lang);S.sheet=null;render()}
  else if(a=='close'){S.sheet=null;render()}else if(a=='csv'){S.csvLang=el.dataset.v;render()}
  else if(a=='flt'){S.onlyV=el.dataset.v=='1';filters();list()}else if(a=='clear'){S.q='';S.onlyV=false;render()}
@@ -229,26 +274,43 @@ document.addEventListener('click',ev=>{const el=ev.target.closest('[data-a]');if
  else if(a=='export'||a=='excel')save();else if(a=='copy')copy(el.dataset.v,el)
  else if(a=='login')login();else if(a=='acct'){S.sheet='acct';render()}else if(a=='logout')logout()});
 document.addEventListener('input',ev=>{const el=ev.target;
- if(el.id=='q'){S.q=el.value;list()}else if(el.classList.contains('n')){el.value=el.value.replace(/\D/g,'').slice(0,7);const e=$('#err');e&&(e.hidden=true)}});
+ if(el.id=='q'){S.q=el.value;list()}else if(el.id=='dq'){S.dq=el.value;dlist()}
+ else if(el.classList.contains('n')){el.value=el.value.replace(/\D/g,'').slice(0,7);const e=$('#err');e&&(e.hidden=true)}});
 document.addEventListener('keydown',ev=>{if(ev.key=='Escape'&&S.sheet){S.sheet=null;render()}
  else if(ev.key=='Enter'&&S.sheet=='edit'&&ev.target.classList.contains('n'))saveEdit();
- else if((ev.key=='Enter'||ev.key==' ')&&ev.target.dataset&&ev.target.dataset.a=='last'){ev.preventDefault();go(1)}});
-$('#file').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(f)readFile(f)});
+ else if((ev.key=='Enter'||ev.key==' ')&&ev.target.dataset&&ev.target.dataset.a=='open'){ev.preventDefault();openDoc(ev.target.dataset.id)}});
+$('#file').addEventListener('change',e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)readFiles(fs)});
 ['dragover','dragenter'].forEach(n=>document.addEventListener(n,e=>{if(S.screen==0&&$('#drop')){e.preventDefault();$('#drop').classList.add('over')}}));
 ['dragleave','drop'].forEach(n=>document.addEventListener(n,e=>{const d=$('#drop');d&&d.classList.remove('over')}));
-document.addEventListener('drop',e=>{if(S.screen==0&&$('#drop')){e.preventDefault();const f=e.dataTransfer.files[0];if(f)readFile(f)}});
+document.addEventListener('drop',e=>{if(S.screen==0&&$('#drop')){e.preventDefault();const fs=e.dataTransfer.files;if(fs&&fs.length)readFiles(fs)}});
 window.addEventListener('hashchange',()=>{const n=location.hash=='#results'&&S.entries.length?1:0;if(n!=S.screen){S.screen=n;render()}});
 if(location.hash=='#results'&&S.entries.length)S.screen=1;
-// ── Cloud sync (Firebase) ──
-let TS=+sget('ts')||0,pt;
-S.fb=false;S.user=null;
-function push(){if(!S.user||!window.FB)return;clearTimeout(pt);pt=setTimeout(async()=>{try{await FB.save(S.user.uid,TS,JSON.stringify(S.entries))}catch(e){toast('sync_err')}},800)}
+// ── Cloud sync (Firebase) — one set of documents per account ──
+function pack(){return JSON.stringify({v:2,docs:S.docs,del:S.del})}
+function unpack(json,ts){try{const p=JSON.parse(json);
+ if(Array.isArray(p))return{docs:p.length?[{id:'legacy',name:t('prev_doc'),ts:ts||1,entries:p}]:[],del:{}};
+ return{docs:(p.docs||[]).filter(x=>x&&x.id&&Array.isArray(x.entries)),del:p.del||{}}}catch(e){return{docs:[],del:{}}}}
+function merge(a,b){const del={...a.del};for(const k in b.del)del[k]=Math.max(del[k]||0,b.del[k]);
+ const m={};[...a.docs,...b.docs].forEach(d=>{if(!m[d.id]||d.ts>m[d.id].ts)m[d.id]=d});
+ return{docs:Object.values(m).filter(d=>!(del[d.id]>=d.ts)),del}}
+function push(){if(!S.user||!window.FB)return;clearTimeout(pt);pt=setTimeout(async()=>{try{await FB.save(S.user.uid,TS,pack())}catch(e){toast('sync_err')}},800)}
 async function login(){try{await FB.login()}catch(e){if(!e||(e.code!='auth/popup-closed-by-user'&&e.code!='auth/cancelled-popup-request'))toast('login_err')}}
-async function logout(){clearTimeout(pt);try{await FB.logout()}catch(e){}S.entries=[];TS=0;sset('entries','[]');sset('ts','0');S.sheet=null;S.q='';S.onlyV=false;go(0)}
-function fbInit(){S.fb=true;FB.onUser(async u=>{S.user=u?{uid:u.uid,name:u.displayName||'',email:u.email||'',photo:u.photoURL||''}:null;render();if(!u)return;
- try{const c=await FB.load(u.uid);
-  if(c&&c.ts>TS){S.entries=JSON.parse(c.json);TS=c.ts;sset('entries',c.json);sset('ts',String(TS));render();toast('synced')}
-  else if(S.entries.length&&(!c||TS>c.ts)){await FB.save(u.uid,TS,JSON.stringify(S.entries));toast('synced')}}
+async function logout(){clearTimeout(pt);try{await FB.logout()}catch(e){}
+ S.docs=[];S.del={};S.cur=null;S.entries=[];TS=0;['docs','del','cur','uid','entries'].forEach(sdel);sset('ts','0');
+ S.sheet=null;S.q='';S.dq='';S.onlyV=false;go(0)}
+function fbInit(){S.fb=true;FB.onUser(async u=>{S.user=u?{uid:u.uid,name:u.displayName||'',email:u.email||'',photo:u.photo||u.photoURL||''}:null;render();if(!u)return;
+ // documents of another account must never mix into this one
+ const prev=sget('uid');
+ if(prev&&prev!=u.uid){S.docs=[];S.del={};S.cur=null;S.entries=[];sdel('cur');S.screen=0}
+ sset('uid',u.uid);
+ try{const c=await FB.load(u.uid),remote=c?unpack(c.json,c.ts):{docs:[],del:{}};
+  const m=merge({docs:S.docs,del:S.del},remote);
+  S.docs=m.docs;S.del=m.del;
+  const cd=curDoc();if(cd){S.entries=cd.entries}else{S.cur=null;S.entries=[];S.screen=0}
+  const needPush=JSON.stringify(merge(remote,{docs:[],del:{}}).docs.map(d=>d.id+':'+d.ts).sort())!=JSON.stringify(S.docs.map(d=>d.id+':'+d.ts).sort())||JSON.stringify(remote.del)!=JSON.stringify(S.del);
+  TS=Date.now();sset('docs',JSON.stringify(S.docs));sset('del',JSON.stringify(S.del));sset('ts',String(TS));
+  if(needPush)await FB.save(u.uid,TS,pack());
+  render();toast('synced')}
  catch(e){toast('sync_err')}})}
 window.addEventListener('fbready',fbInit);if(window.FB)fbInit();
 render();
