@@ -135,12 +135,12 @@ function parse(input){
 const summarize=e=>({detected:e.length,valid:e.filter(x=>x.status=='VALID').length,verify:e.filter(x=>x.status=='VERIFY').length,noDispense:e.filter(x=>x.status=='NO_DISPENSE').length,grand:sum(e.filter(x=>x.status=='VALID').map(x=>x.total))});
 const edit=(e,n)=>({...e,numbers:n,total:sum(n),status:n.length==4?'VALID':'VERIFY',note:'Edited',code:'EDITED',arg:''});
 function noteText(x,lang){if(lang=='en')return x.note;return({SUM:'La somme diffère de NOTES PRESENTED',BAD:'Quatre nombres attendus : '+x.arg,DECLINED:'Refusé RC '+x.arg,NOCASH:'Aucun retrait',NOLINE:'REQ > 0 mais aucune ligne de quatre nombres',EDITED:'Modifié'})[x.code]||x.note}
-function toCsv(e,lang){const fr=lang!='en';
- let s='\uFEFF'+(fr?'Réf,Heure,REQ,N1,N2,N3,N4,Total,Statut,Note':'Ref,Time,REQ,N1,N2,N3,N4,Total,Status,Note')+'\n';
+function toCsv(e,lang){const fr=lang!='en',SP=fr?';':',';
+ let s='\uFEFF'+(fr?'Réf,Heure,REQ,N1,N2,N3,N4,Total,Statut,Note':'Ref,Time,REQ,N1,N2,N3,N4,Total,Status,Note').split(',').join(SP)+'\n';
  for(const x of e){const st=!fr?x.status:({VALID:'VALIDE',NO_DISPENSE:'SANS DISTRIBUTION',VERIFY:'À VÉRIFIER'})[x.status];
-  const rq=Number.isInteger(x.req)?x.req.toFixed(1):String(x.req);
-  s+=[x.ref,x.time,rq,...[0,1,2,3].map(i=>x.numbers[i]??''),x.total,st].join(',')+',"'+noteText(x,lang).replace(/"/g,'""')+'"\n'}
- return s+(fr?'TOTAL GÉNÉRAL':'GRAND TOTAL')+',,,,,,,'+summarize(e).grand+',,\n'}
+  const rq=fr?String(x.req).replace('.',','):String(x.req);
+  s+=[x.ref,x.time,rq,...[0,1,2,3].map(i=>x.numbers[i]??''),x.total,st].join(SP)+SP+'"'+noteText(x,lang).replace(/"/g,'""')+'"\n'}
+ return s+(fr?'TOTAL GÉNÉRAL':'GRAND TOTAL')+SP.repeat(7)+summarize(e).grand+SP.repeat(2)+'\n'}
 // ── helpers / icons ──
 const P={User:["M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z","M4 21a8 8 0 0 1 16 0"],Upload:["M12 15V3","M7 8l5-5 5 5","M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"],Download:["M12 3v12","M7 10l5 5 5-5","M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"],
 Copy:["M9 9h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1z","M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"],Check:["M5 12.5l4.5 4.5L19 7.5"],
