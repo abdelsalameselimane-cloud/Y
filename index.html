@@ -92,13 +92,14 @@ hr{border:0;height:1px;background:var(--bd);margin:16px 0;width:100%}
 .bar .btn{width:auto;min-height:44px;padding:0 14px}
 .home.selm{padding-bottom:110px}
 .dot{width:14px;height:14px;border-radius:50%;background:var(--c);flex:none;display:inline-block}
-.ov.full{align-items:center;padding:12px}.sheet.wide{max-width:1100px;height:92vh;max-height:92vh;border-radius:20px;overflow:hidden;padding:18px}
-.tw{flex:1;min-height:0;overflow:auto;border:1px solid var(--bd);border-radius:13px;direction:ltr}
+.ov.full{align-items:center;padding:12px}.sheet.wide{max-width:1100px;height:92vh;max-height:92vh;border-radius:20px;overflow:auto;padding:18px}
+.tw{flex:1;min-height:170px;overflow:auto;border:1px solid var(--bd);border-radius:13px;direction:ltr}
 .tb{border-collapse:separate;border-spacing:0;width:100%;font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .tb th,.tb td{padding:8px 12px;border-bottom:1px solid var(--bd);border-inline-end:1px solid var(--bd);text-align:center}
 .tb th{position:sticky;top:0;background:var(--in);z-index:2;font-weight:700}
 .tb td:last-child,.tb th:last-child{text-align:start}
-.tb tr.v td{background:color-mix(in srgb,var(--er) 9%,transparent)}.tb tr.n td{color:var(--mu)}
+.tb tr.b td{background:color-mix(in srgb,var(--ok) 14%,transparent)}.tb tr.b td:nth-child(11){color:var(--ok);font-weight:700}.tb tr.n td{color:var(--mu)}.tb tr.v td{background:color-mix(in srgb,var(--er) 9%,transparent)}
+.tf{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}.tf label{display:flex;flex-direction:column;gap:2px}.tf .field{min-height:42px;padding:0 10px}
 .tb tfoot td{position:sticky;bottom:0;background:var(--in);font-weight:700;border-bottom:0}
 .dc{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 </style>
@@ -133,22 +134,39 @@ Object.assign(D.ar,{tbl_title:"عرض الجدول",c_ref:"الرقم",c_time:"�
 Object.assign(D.en,{theme_dark:"Dark mode",theme_light:"Light mode"});
 Object.assign(D.fr,{theme_dark:"Mode sombre",theme_light:"Mode clair"});
 Object.assign(D.ar,{theme_dark:"الوضع الليلي",theme_light:"الوضع النهاري"});
+Object.assign(D.en,{c_date:"Date",k_all:"All",k_NORMAL:"Regular",k_BANK:"Bank operations",t_from:"From",t_to:"To",t_day:"Day",t_clear:"Clear",tot:"Total",sort_by:"Sort",s_date:"By date in name",s_alpha:"Alphabetical",s_asc:"Ascending",s_desc:"Descending"});
+Object.assign(D.fr,{c_date:"Date",k_all:"Toutes",k_NORMAL:"Normales",k_BANK:"Opérations bancaires",t_from:"De",t_to:"À",t_day:"Jour",t_clear:"Effacer",tot:"Total",sort_by:"Tri",s_date:"Par date du nom",s_alpha:"Alphabétique",s_asc:"Croissant",s_desc:"Décroissant"});
+Object.assign(D.ar,{c_date:"التاريخ",k_all:"الكل",k_NORMAL:"العادية",k_BANK:"العمليات البنكية",t_from:"من",t_to:"إلى",t_day:"اليوم",t_clear:"مسح",tot:"المجموع",sort_by:"الترتيب",s_date:"حسب التاريخ في الاسم",s_alpha:"أبجديًا",s_asc:"تصاعدي",s_desc:"تنازلي"});
 const COLORS=["#4f6bff","#7c5cff","#e11d8f","#dc2626","#f97316","#eab308","#16a34a","#0d9488","#0ea5e9","#64748b"];
 const col=c=>/^#[0-9a-f]{6}$/i.test(c)?c:COLORS[0];
 // ── Engine (port of Engine.kt) ──
 const SEP='\\s*[-–—,;|]\\s*';
 const R={ESC:/\x1B\[[0-9;]*[A-Za-z]|\x1B[()][0-9A-Za-z]|\x1B[A-Za-z]\d*|[\x00-\x08\x0B\x0C\x0E-\x1F]/g,REQ:/REQ\s*:\s*([\d.,]+)/,
 FOUR:new RegExp('^\\s*(\\d+)'+SEP+'(\\d+)'+SEP+'(\\d+)'+SEP+'(\\d+)\\s*$'),ANY:new RegExp('^\\s*\\d+('+SEP+'\\d+)+\\s*$'),
-HEADER:/^\s*(\d+)\s+\d\d\/\d\d\/\d\d/,TIME:/^\s*(\d\d:\d\d:\d\d)\s+[A-Z ]+?\s*$/,RC:/\bRC\s+(\d{3})\b/,NP:/NOTES PRESENTED ([\d,]+)/};
+HEADER:/^\s*(\d+)\s+(\d\d)\/(\d\d)\/(\d\d)/,TIME:/^\s*(\d\d:\d\d:\d\d)\s+[A-Z ]+?\s*$/,RC:/\bRC\s+(\d{3})\b/,NP:/NOTES PRESENTED ([\d,]+)/,CARD:/\bCARD\s*(?:NO\.?|NUMBER|#)?\s*[:=]?\s*([\d*xX]{6,})/i,ACCT:/\bACCT(?:\s*(?:NO\.?|NUMBER|#))?\s*[:=]?\s*([\w*\-]*[\d*][\w*\-]*)/i};
 const sum=a=>a.reduce((x,y)=>x+y,0);
+function pdate(a,b,c){a=+a;b=+b;c=+c;let y,m,d;if(a>31){y=a;m=b;d=c}else if(b>12){m=a;d=b;y=c}else{d=a;m=b;y=c}
+ if(m<1||m>12||d<1||d>31)return'';return(2000+y)+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
+const fmtDate=iso=>iso?iso.split('-').reverse().join('/'):'';
+function nameDate(n){let m,y,mo,d;
+ if(m=/(20\d\d)[-_. \/]?(\d\d)[-_. \/]?(\d\d)/.exec(n)){y=+m[1];mo=+m[2];d=+m[3]}
+ else if(m=/(\d\d)(\d\d)(20\d\d)/.exec(n)){if(+m[1]>12){d=+m[1];mo=+m[2]}else{mo=+m[1];d=+m[2]}y=+m[3]}
+ else if(m=/(\d\d)[-_. \/](\d\d)[-_. \/](20\d\d)/.exec(n)){d=+m[1];mo=+m[2];y=+m[3]}
+ else if(m=/(?:^|\D)(\d\d)[-_. \/](\d\d)[-_. \/](\d\d)(?!\d)/.exec(n)){d=+m[1];mo=+m[2];y=2000+ +m[3]}
+ else return null;
+ return mo>=1&&mo<=12&&d>=1&&d<=31?y*10000+mo*100+d:null}
+const cardCell=(x,fr)=>x.kind=='BANK'?(fr?'Opération bancaire':'Bank operation'):(x.card||'');
 function clean(t){return t.replace(R.ESC,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n').replace(/[٠-٩]/g,c=>'٠١٢٣٤٥٦٧٨٩'.indexOf(c))}
 function parse(input){
  const l=clean(input).split('\n'),idx=[];l.forEach((s,i)=>{if(R.REQ.test(s))idx.push(i)});
  const seen=new Set(),out=[];
  idx.forEach((i,k)=>{
   const end=Math.min(k+1<idx.length?idx[k+1]:l.length,i+14);
-  let ref='REQ '+String(k+1).padStart(3,'0'),time='';
-  for(let j=i-1;j>=Math.max(0,i-4);j--){const h=R.HEADER.exec(l[j]);if(h){ref=h[1];break}const t=R.TIME.exec(l[j]);if(t)time=t[1]}
+  let ref='REQ '+String(k+1).padStart(3,'0'),time='',date='';
+  for(let j=i-1;j>=Math.max(0,i-4);j--){const h=R.HEADER.exec(l[j]);if(h){ref=h[1];date=pdate(h[2],h[3],h[4]);break}const t=R.TIME.exec(l[j]);if(t)time=t[1]}
+  let lo=Math.max(0,i-8);for(let j=i-1;j>=Math.max(0,i-15);j--){const h=R.HEADER.exec(l[j]);if(h){lo=j;if(!date)date=pdate(h[2],h[3],h[4]);break}}
+  let hi=end;for(let j=i+1;j<end;j++){if(R.HEADER.test(l[j])){hi=j;break}}
+  const seg=l.slice(lo,hi).join('\n'),cm=R.CARD.exec(seg),am=R.ACCT.exec(seg),card=cm&&/\d/.test(cm[1])?cm[1]:'',acct=am?am[1]:'',kind=acct&&!acct.startsWith('00799999')&&!card.startsWith('00799999')?'BANK':'NORMAL';
   let a=Number(R.REQ.exec(l[i])[1].replace(/,/g,'').replace(/\.+$/,''));if(isNaN(a))a=0;
   let nums=[],bad='';
   for(let j=i+1;j<Math.min(end,i+4);j++){if(!l[j].trim())continue;const m=R.FOUR.exec(l[j]);
@@ -160,18 +178,18 @@ function parse(input){
   else if(bad){status='VERIFY';note='Expected 4 numbers: '+bad;code='BAD';arg=bad}
   else if(a==0||rc){status='NO_DISPENSE';note=rc?'Declined RC '+rc:'No cash';code=rc?'DECLINED':'NOCASH';arg=rc||''}
   else{status='VERIFY';note='REQ > 0 but no four-number line';code='NOLINE'}
-  const key=[ref,time,a,nums.join('-')].join('|');
-  if(!seen.has(key)){seen.add(key);out.push({ref,time,req:a,numbers:nums,total:sum(nums),status,note,raw,code,arg})}
+  const key=[ref,date,time,a,nums.join('-')].join('|');
+  if(!seen.has(key)){seen.add(key);out.push({ref,date,time,req:a,numbers:nums,total:sum(nums),status,note,raw,code,arg,card,acct,kind})}
  });return out}
 const summarize=e=>({detected:e.length,valid:e.filter(x=>x.status=='VALID').length,verify:e.filter(x=>x.status=='VERIFY').length,noDispense:e.filter(x=>x.status=='NO_DISPENSE').length,grand:sum(e.filter(x=>x.status=='VALID').map(x=>x.total))});
 const edit=(e,n)=>({...e,numbers:n,total:sum(n),status:n.length==4?'VALID':'VERIFY',note:'Edited',code:'EDITED',arg:''});
 function noteText(x,lang){if(lang=='en')return x.note;return({SUM:'La somme diffère de NOTES PRESENTED',BAD:'Quatre nombres attendus : '+x.arg,DECLINED:'Refusé RC '+x.arg,NOCASH:'Aucun retrait',NOLINE:'REQ > 0 mais aucune ligne de quatre nombres',EDITED:'Modifié'})[x.code]||x.note}
 function toCsv(e,lang){const fr=lang!='en',SP=fr?';':',';
- let s='\uFEFF'+(fr?'Réf,Heure,REQ,N1,N2,N3,N4,Total,Statut,Note':'Ref,Time,REQ,N1,N2,N3,N4,Total,Status,Note').split(',').join(SP)+'\n';
+ let s='﻿'+(fr?'Réf,Date,Heure,REQ,N1,N2,N3,N4,Total,Statut,Carte,Compte,Note':'Ref,Date,Time,REQ,N1,N2,N3,N4,Total,Status,Card,Account,Note').split(',').join(SP)+'\n';
  for(const x of e){const st=!fr?x.status:({VALID:'VALIDE',NO_DISPENSE:'SANS DISTRIBUTION',VERIFY:'À VÉRIFIER'})[x.status];
   const rq=fr?String(x.req).replace('.',','):String(x.req);
-  s+=[x.ref,x.time,rq,...[0,1,2,3].map(i=>x.numbers[i]??''),x.total,st].join(SP)+SP+'"'+noteText(x,lang).replace(/"/g,'""')+'"\n'}
- return s+(fr?'TOTAL GÉNÉRAL':'GRAND TOTAL')+SP.repeat(7)+summarize(e).grand+SP.repeat(2)+'\n'}
+  s+=[x.ref,fmtDate(x.date),x.time,rq,...[0,1,2,3].map(i=>x.numbers[i]??''),x.total,st,cardCell(x,fr),x.acct||''].join(SP)+SP+'"'+noteText(x,lang).replace(/"/g,'""')+'"\n'}
+ return s+(fr?'TOTAL GÉNÉRAL':'GRAND TOTAL')+SP.repeat(8)+summarize(e).grand+SP.repeat(4)+'\n'}
 
 // ── XLSX export (no libraries): minimal OOXML package inside a store-only ZIP ──
 const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
@@ -187,23 +205,23 @@ function zip(files,type){const enc=new TextEncoder(),parts=[],cd=[];let off=0;
  const end=new Uint8Array([0x50,0x4b,5,6,0,0,0,0,...u16(files.length),...u16(files.length),...u32(cs),...u32(off),0,0]);
  return new Blob([...parts,...cd,end],{type})}
 function toXlsx(e,lang){const fr=lang!='en',enc=new TextEncoder(),
- H=(fr?'Réf,Heure,REQ,N1,N2,N3,N4,Total,Statut,Note':'Ref,Time,REQ,N1,N2,N3,N4,Total,Status,Note').split(','),
- W=[12,11,12,8,8,8,8,10,20,46],
+ H=(fr?'Réf,Date,Heure,REQ,N1,N2,N3,N4,Total,Statut,Carte,Compte,Note':'Ref,Date,Time,REQ,N1,N2,N3,N4,Total,Status,Card,Account,Note').split(','),
+ W=[12,12,11,12,8,8,8,8,10,20,22,18,46],
  X=s=>String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]),
- cell=(r,i,v,st)=>{if(v===''||v==null)return'';const a=String.fromCharCode(65+i)+r,s=st?' s="1"':'';
+ cell=(r,i,v,st)=>{const a=String.fromCharCode(65+i)+r,s=st?' s="'+st+'"':'';if(v===''||v==null)return st==2?'<c r="'+a+'" s="2"/>':'';
   return typeof v=='number'?'<c r="'+a+'"'+s+'><v>'+v+'</v></c>':'<c r="'+a+'" t="inlineStr"'+s+'><is><t xml:space="preserve">'+X(v)+'</t></is></c>'},
  row=(r,cs)=>'<row r="'+r+'">'+cs.join('')+'</row>',
  rows=[row(1,H.map((h,i)=>cell(1,i,h,1)))];
  e.forEach((x,k)=>{const r=k+2,st=!fr?x.status:({VALID:'VALIDE',NO_DISPENSE:'SANS DISTRIBUTION',VERIFY:'À VÉRIFIER'})[x.status];
-  rows.push(row(r,[cell(r,0,/^\d+$/.test(x.ref)?+x.ref:x.ref),cell(r,1,x.time),cell(r,2,x.req),...[0,1,2,3].map(i=>cell(r,3+i,x.numbers[i]??'')),cell(r,7,x.total),cell(r,8,st),cell(r,9,noteText(x,lang))]))});
- const r=e.length+2;rows.push(row(r,[cell(r,0,fr?'TOTAL GÉNÉRAL':'GRAND TOTAL',1),cell(r,7,summarize(e).grand,1)]));
+  const bk=x.kind=='BANK'?2:0;rows.push(row(r,[cell(r,0,/^\d+$/.test(x.ref)?+x.ref:x.ref,bk),cell(r,1,fmtDate(x.date),bk),cell(r,2,x.time,bk),cell(r,3,x.req,bk),...[0,1,2,3].map(i=>cell(r,4+i,x.numbers[i]??'',bk)),cell(r,8,x.total,bk),cell(r,9,st,bk),cell(r,10,cardCell(x,fr),bk),cell(r,11,x.acct,bk),cell(r,12,noteText(x,lang),bk)]))});
+ const r=e.length+2;rows.push(row(r,[cell(r,0,fr?'TOTAL GÉNÉRAL':'GRAND TOTAL',1),cell(r,8,summarize(e).grand,1)]));
  const NS='http://schemas.openxmlformats.org/spreadsheetml/2006/main',RN='http://schemas.openxmlformats.org/officeDocument/2006/relationships',PK='http://schemas.openxmlformats.org/package/2006/relationships',HD='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
  const F=[
  ['[Content_Types].xml',HD+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
  ['_rels/.rels',HD+'<Relationships xmlns="'+PK+'"><Relationship Id="rId1" Type="'+RN+'/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
  ['xl/workbook.xml',HD+'<workbook xmlns="'+NS+'" xmlns:r="'+RN+'"><sheets><sheet name="REQ" sheetId="1" r:id="rId1"/></sheets></workbook>'],
  ['xl/_rels/workbook.xml.rels',HD+'<Relationships xmlns="'+PK+'"><Relationship Id="rId1" Type="'+RN+'/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="'+RN+'/styles" Target="styles.xml"/></Relationships>'],
- ['xl/styles.xml',HD+'<styleSheet xmlns="'+NS+'"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'],
+ ['xl/styles.xml',HD+'<styleSheet xmlns="'+NS+'"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD1FADF"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="0" fillId="2" borderId="0" xfId="0" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'],
  ['xl/worksheets/sheet1.xml',HD+'<worksheet xmlns="'+NS+'"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>'+W.map((w,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>').join('')+'</cols><sheetData>'+rows.join('')+'</sheetData></worksheet>']
  ].map(([n,s])=>[n,enc.encode(s)]);
  return zip(F,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
@@ -217,7 +235,7 @@ Alert:["M12 3L2.5 20h19L12 3z","M12 10v4","M12 17.2v.01"],Ban:["M12 3a9 9 0 1 0 
 Trash:["M4 7h16","M10 11v6","M14 11v6","M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13","M9 7V4h6v3"],
 Table:["M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z","M4 10h16","M4 15h16","M10 4v16"],
 Calc:["M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z","M8 7.5h8","M8.5 12h.01","M12 12h.01","M15.5 12h.01","M8.5 16h.01","M12 16h.01","M15.5 16h.01"],
-Folder:["M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"],Move:["M5 12h14","M13 6l6 6-6 6"],Sun:["M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z","M12 2v2","M12 20v2","M4.9 4.9l1.4 1.4","M17.7 17.7l1.4 1.4","M2 12h2","M20 12h2","M4.9 19.1l1.4-1.4","M17.7 6.3l1.4-1.4"],Moon:["M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"]};
+Folder:["M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"],Move:["M5 12h14","M13 6l6 6-6 6"],Sun:["M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z","M12 2v2","M12 20v2","M4.9 4.9l1.4 1.4","M17.7 17.7l1.4 1.4","M2 12h2","M20 12h2","M4.9 19.1l1.4-1.4","M17.7 6.3l1.4-1.4"],Moon:["M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"],Up:["M12 19V5","M6 11l6-6 6 6"],Down:["M12 5v14","M6 13l6 6 6-6"]};
 const ic=n=>'<svg class="i" viewBox="0 0 24 24" aria-hidden="true">'+P[n].map(d=>'<path d="'+d+'"/>').join('')+'</svg>';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
 const num=n=>n.toLocaleString('en-US'),amt=d=>d.toLocaleString('en-US',{maximumFractionDigits:2});
@@ -235,7 +253,7 @@ applyTheme();
 if(MQ.addEventListener)MQ.addEventListener('change',()=>{applyTheme();if(typeof render=='function')render()});
 // ── state ──
 let TS=+sget('ts')||0,pt;
-const S={docs:[],del:{},cur:null,entries:[],screen:0,q:'',dq:'',onlyV:false,csvLang:'fr',lang:sget('lang')||detect(),busy:false,saving:false,homeErr:null,homeInfo:null,saveErr:false,excelErr:false,sheet:null,idx:0,delId:null,fb:false,user:null,folders:[],fol:null,sel:false,ids:new Set(),fe:null};
+const S={docs:[],del:{},cur:null,entries:[],screen:0,q:'',dq:'',onlyV:false,csvLang:'fr',lang:sget('lang')||detect(),busy:false,saving:false,homeErr:null,homeInfo:null,saveErr:false,excelErr:false,sheet:null,idx:0,delId:null,fb:false,user:null,folders:[],fol:null,sel:false,ids:new Set(),fe:null,tf:{kind:'all',from:'',to:'',day:''},sortBy:sget('sortBy')||'date',sortDir:sget('sortDir')||'desc'};
 const t=(k,a)=>{let s=D[S.lang][k]??D.en[k]??k;for(const x in a||{})s=s.replace('{'+x+'}',a[x]);return s};
 const $=s=>document.querySelector(s);
 // load saved documents (and migrate the old single-session storage)
@@ -260,13 +278,13 @@ function header(){const back=S.screen==1&&S.entries.length,cd=curDoc();
 function acctBtn(){if(!S.fb)return'';if(!S.user)return'<button class="chip on" data-a="login">'+esc(t('signin'))+'</button>';
  const u=S.user;return'<button class="ib av" data-a="acct" aria-label="'+esc(t('account'))+'" title="'+esc(u.email)+'">'+(u.photo?'<img src="'+esc(u.photo)+'" alt="" referrerpolicy="no-referrer">':esc((u.name||u.email||'?').charAt(0).toUpperCase()))+'</button>'}
 const fid=d=>S.folders.some(f=>f.id===d.folder)?d.folder:null;
-function vis(){const q=S.dq.trim().toLowerCase();return [...S.docs].sort((a,b)=>b.ts-a.ts).filter(d=>q?d.name.toLowerCase().includes(q):fid(d)===S.fol)}
+function vis(){const q=S.dq.trim().toLowerCase();return [...S.docs].sort(sorter()).filter(d=>q?d.name.toLowerCase().includes(q):fid(d)===S.fol)}
 function secHead(){const cf=S.fol&&S.folders.find(f=>f.id===S.fol);let h='<div class="row">';
  if(cf){const id=esc(cf.id),n=S.docs.filter(d=>fid(d)===cf.id).length;
   h+='<button class="ib" data-a="upf" aria-label="'+esc(t('back'))+'" title="'+esc(t('back'))+'">'+ic('Back')+'</button><div class="tile" style="--c:'+col(cf.color)+'">'+ic('Folder')+'</div><div class="grow t"><h2>'+esc(cf.name)+'</h2><div class="mu sm">'+esc(t('f_count',{n}))+'</div></div>'+
   '<button class="ib" data-a="editf" data-id="'+id+'" title="'+esc(t('edit'))+'" aria-label="'+esc(t('edit'))+'">'+ic('Edit')+'</button><button class="ib" data-a="delf" data-id="'+id+'" title="'+esc(t('del'))+'" aria-label="'+esc(t('del'))+'">'+ic('Trash')+'</button>'}
  else h+='<div class="tile">'+ic('File')+'</div><div class="grow t"><h2>'+esc(t('docs_title'))+' ('+S.docs.length+')</h2></div>';
- return h+'</div><div class="chips" style="margin-top:14px"><button class="chip" data-a="newf">+ '+esc(t('new_folder'))+'</button><button class="chip'+(S.sel?' on':'')+'" data-a="selmode">'+esc(S.sel?t('done'):t('select'))+'</button></div>'}
+ return h+'</div><div class="chips" style="margin-top:14px"><button class="chip" data-a="newf">+ '+esc(t('new_folder'))+'</button><button class="chip'+(S.sel?' on':'')+'" data-a="selmode">'+esc(S.sel?t('done'):t('select'))+'</button></div><div class="chips" style="margin-top:10px;align-items:center"><span class="mu sm t">'+esc(t('sort_by'))+'</span><button class="chip'+(S.sortBy=='date'?' on':'')+'" data-a="sortby" data-v="date">'+esc(t('s_date'))+'</button><button class="chip'+(S.sortBy=='alpha'?' on':'')+'" data-a="sortby" data-v="alpha">'+esc(t('s_alpha'))+'</button><button class="ib" data-a="sortdir" title="'+esc(t(S.sortDir=='asc'?'s_asc':'s_desc'))+'" aria-label="'+esc(t(S.sortDir=='asc'?'s_asc':'s_desc'))+'">'+ic(S.sortDir=='asc'?'Up':'Down')+'</button></div>'}
 function selBar(){if(!S.sel)return'';const n=S.ids.size,v=vis();
  return '<div class="bar t" role="toolbar"><b>'+esc(t('sel_n',{n}))+'</b>'+btn('selall',v.length&&v.every(d=>S.ids.has(d.id))?t('desel'):t('sel_all'),{dis:!v.length})+btn('move',t('move'),{icon:'Move',dis:!n})+btn('bdel',t('del'),{d:1,icon:'Trash',dis:!n})+'</div>'}
 function fcard(f){const n=S.docs.filter(d=>fid(d)===f.id).length,id=esc(f.id),c=col(f.color);
@@ -285,7 +303,7 @@ function docCard(d){const s=summarize(d.entries),dt=new Date(d.ts).toLocaleStrin
  (s.verify?'<span class="badge t" style="--c:var(--er)">'+esc(s.verify+' · '+t('verify'))+'</span>':'')+
  (S.sel?'':'<button class="ib" data-a="deldoc" data-id="'+id+'" title="'+esc(t('del'))+'" aria-label="'+esc(t('del'))+'">'+ic('Trash')+'</button>')+'</div></article>'}
 function dlist(){const el=$('#dlist');if(!el)return;const q=S.dq.trim(),sh=vis();
- const fs=(!q&&!S.fol)?[...S.folders].sort((a,b)=>a.name.localeCompare(b.name)).map(fcard).join(''):'';
+ const fs=(!q&&!S.fol)?[...S.folders].sort(sorter()).map(fcard).join(''):'';
  const msg=q?'docs_none':S.fol?'folder_empty':'docs_empty';
  el.innerHTML=(fs||sh.length)?fs+sh.map(docCard).join(''):'<div class="card empty t"><p class="mu" style="margin:0">'+esc(t(msg))+'</p></div>'}
 function results(){const s=summarize(S.entries),st=(n,l,c)=>'<div><b style="color:'+c+'">'+n+'</b><span class="xs mu t">'+esc(l)+'</span></div>';
@@ -298,12 +316,13 @@ function results(){const s=summarize(S.entries),st=(n,l,c)=>'<div><b style="colo
  '<main class="stack"><div class="tools"><label class="field">'+ic('Search')+'<input id="q" type="search" value="'+esc(S.q)+'" placeholder="'+esc(t('search'))+'" aria-label="'+esc(t('search'))+'"></label><div class="chips" id="flt"></div></div><div class="list" id="list"></div></main></div>'}
 function filters(){$('#flt').innerHTML=[[0,'f_all'],[1,'f_verify']].map(([v,k])=>'<button class="chip '+((S.onlyV?1:0)==v?'on':'')+'" data-a="flt" data-v="'+v+'">'+esc(t(k))+'</button>').join('')}
 function entry(e,i){const col={VALID:'var(--ok)',VERIFY:'var(--er)',NO_DISPENSE:'var(--mu)'}[e.status],icn={VALID:'CheckCircle',VERIFY:'Alert',NO_DISPENSE:'Ban'}[e.status];
- const title=/^\d+$/.test(e.ref)?'#'+e.ref:e.ref,sub=[e.time,'REQ '+amt(e.req)].filter(Boolean).join(' · '),four=e.numbers.length==4;
- return '<article class="card ent" style="--c:'+col+'"><div class="row"><div class="tile">'+ic(icn)+'</div><div class="grow"><b class="ltr">'+esc(title)+'</b><div class="mu sm ltr">'+esc(sub)+'</div></div><span class="badge t">'+esc(t('st_'+e.status))+'</span></div>'+
+ const title=/^\d+$/.test(e.ref)?'#'+e.ref:e.ref,sub=[fmtDate(e.date),e.time,'REQ '+amt(e.req)].filter(Boolean).join(' · '),four=e.numbers.length==4;
+ return '<article class="card ent" style="--c:'+col+'"><div class="row"><div class="tile">'+ic(icn)+'</div><div class="grow"><b class="ltr">'+esc(title)+'</b><div class="mu sm ltr">'+esc(sub)+'</div></div><span class="badge t">'+esc(t('st_'+e.status))+'</span>'+(e.kind=='BANK'?'<span class="badge t" style="--c:var(--ok)">'+esc(t('k_BANK'))+'</span>':'')+'</div>'+
+ ((e.kind!='BANK'&&e.card)||e.acct?'<div class="mu xs ltr" style="margin-top:8px;word-break:break-all">'+esc([e.kind!='BANK'&&e.card?'CARD '+e.card:'',e.acct?'ACCT '+e.acct:''].filter(Boolean).join(' · '))+'</div>':'')+
  (four?'<div class="row" style="margin-top:14px;gap:10px"><div class="grow eq ltr">'+e.numbers.join(' + ')+' = '+num(e.total)+'</div>'+copyBtn(e.total)+'<button class="ib" data-a="edit" data-i="'+i+'" title="'+esc(t('edit'))+'" aria-label="'+esc(t('edit'))+'">'+ic('Edit')+'</button></div>':'')+
  (e.code?'<div class="sm t" style="margin-top:6px;color:'+(e.status=='VERIFY'?'var(--er)':'var(--mu)')+'">'+esc(t('n_'+e.code,{a:e.arg}))+'</div>':'')+
  (!four&&e.status=='VERIFY'?'<div style="margin-top:14px">'+btn('edit',t('edit'),{icon:'Edit'}).replace('data-a="edit"','data-a="edit" data-i="'+i+'"')+'</div>':'')+'</article>'}
-function list(){const q=S.q.trim(),sh=S.entries.map((e,i)=>[e,i]).filter(([e])=>(!q||e.ref.includes(q)||e.time.includes(q)||String(e.total)==q)&&(!S.onlyV||e.status=='VERIFY'));
+function list(){const q=S.q.trim(),sh=S.entries.map((e,i)=>[e,i]).filter(([e])=>(!q||e.ref.includes(q)||e.time.includes(q)||fmtDate(e.date).includes(q)||(e.card||'').includes(q)||(e.acct||'').includes(q)||String(e.total)==q)&&(!S.onlyV||e.status=='VERIFY'));
  $('#list').innerHTML=sh.length?sh.map(([e,i])=>entry(e,i)).join(''):'<div class="card empty t"><p class="mu" style="margin-top:0">'+esc(t('empty_filter'))+'</p>'+btn('clear',t('clear_filters'))+'</div>'}
 function render(){document.documentElement.lang=S.lang;document.title=t('name');
  const res=S.screen==1&&S.entries.length;
@@ -320,10 +339,11 @@ function render(){document.documentElement.lang=S.lang;document.title=t('name');
   const f=L.querySelector('.n');f&&f.focus()}
  else if(S.sheet=='acct'&&S.user){const u=S.user;
   L.innerHTML='<div class="ov" data-a="close"><div class="sheet" role="dialog" aria-modal="true"><h2 class="t" style="margin:0">'+esc(t('account'))+'</h2><div class="who"><div class="av ib">'+(u.photo?'<img src="'+esc(u.photo)+'" alt="" referrerpolicy="no-referrer">':esc((u.name||u.email||'?').charAt(0).toUpperCase()))+'</div><div class="grow"><b class="t">'+esc(u.name)+'</b><div class="mu sm ltr">'+esc(u.email)+'</div></div></div><div class="mu sm t">'+esc(t('acct_desc'))+'</div><div class="g2">'+btn('close',t('cancel'))+btn('logout',t('signout'),{p:1})+'</div></div></div>'}
- else if(S.sheet=='table'){const H=['c_ref','c_time','REQ','N1','N2','N3','N4','c_total','c_status','c_note'].map(k=>k[0]=='c'?t(k):k),g=summarize(S.entries);
-  L.innerHTML='<div class="ov full" data-a="close"><div class="sheet wide" role="dialog" aria-modal="true"><div class="row"><div class="grow t"><h2 style="margin:0">'+esc(t('tbl_title'))+'</h2><div class="mu sm">'+esc(t('tbl_hint'))+'</div></div><button class="ib" data-a="close" aria-label="'+esc(t('cancel'))+'">'+ic('Back')+'</button></div><div class="tw"><table class="tb"><thead><tr>'+H.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+
-  S.entries.map(x=>'<tr class="'+(x.status=='VERIFY'?'v':x.status=='NO_DISPENSE'?'n':'')+'"><td>'+esc(x.ref)+'</td><td>'+esc(x.time)+'</td><td>'+amt(x.req)+'</td>'+[0,1,2,3].map(i=>'<td>'+(x.numbers[i]??'')+'</td>').join('')+'<td>'+(x.numbers.length==4?num(x.total):'')+'</td><td>'+esc(t('st_'+x.status))+'</td><td>'+esc(x.code?t('n_'+x.code,{a:x.arg}):'')+'</td></tr>').join('')+
-  '</tbody><tfoot><tr><td colspan="10" style="text-align:start"><span style="position:sticky;left:12px">'+esc(t('grand'))+' : '+num(g.grand)+'</span></td></tr></tfoot></table></div><div class="g2">'+btn('close',t('done'))+btn('export',S.saving?t('exporting'):t('export_csv'),{p:1,icon:'Download',dis:S.saving,load:S.saving})+'</div></div></div>'}
+ else if(S.sheet=='table'){const f=S.tf,H=['c_ref','c_date','c_time','REQ','N1','N2','N3','N4','c_total','c_status','CARD','ACCT','c_note'].map(k=>k[0]=='c'?t(k):k),lb=(k,id,ty,v)=>'<label><span class="mu xs t">'+esc(t(k))+'</span><div class="field"><input type="'+ty+'" id="'+id+'" value="'+esc(v)+'"></div></label>';
+  L.innerHTML='<div class="ov full" data-a="close"><div class="sheet wide" role="dialog" aria-modal="true"><div class="row"><div class="grow t"><h2 style="margin:0">'+esc(t('tbl_title'))+'</h2><div class="mu sm">'+esc(t('tbl_hint'))+'</div></div><button class="ib" data-a="close" aria-label="'+esc(t('done'))+'">'+ic('Back')+'</button></div>'+
+  '<div class="chips" id="tchips"></div><div class="tf">'+lb('t_from','tfrom','time',f.from)+lb('t_to','tto','time',f.to)+lb('t_day','tday','date',f.day)+'<button class="chip" data-a="tclr">'+esc(t('t_clear'))+'</button></div><div class="sm t" id="tsum"></div>'+
+  '<div class="tw"><table class="tb"><thead><tr>'+H.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody id="tbody"></tbody><tfoot><tr><td colspan="13" id="tfoot" style="text-align:start"></td></tr></tfoot></table></div><div class="g2">'+btn('close',t('done'))+btn('export',S.saving?t('exporting'):t('export_csv'),{p:1,icon:'Download',dis:S.saving,load:S.saving})+'</div></div></div>';
+  tblUpdate()}
  else if(S.sheet=='fedit'&&S.fe){const fe=S.fe;
   L.innerHTML='<div class="ov" data-a="close"><div class="sheet" role="dialog" aria-modal="true"><h2 class="t" style="margin:0">'+esc(t(fe.id?'fedit_title':'fnew_title'))+'</h2><label><span class="mu sm t">'+esc(t('fname'))+'</span><div class="field"><input id="fn" maxlength="40" value="'+esc(fe.name)+'" placeholder="'+esc(t('fname_ph'))+'"></div></label><div class="mu sm t">'+esc(t('fcolor'))+'</div><div class="sw">'+
   COLORS.map(c=>'<button class="'+(c==fe.color?'on':'')+'" style="--c:'+c+'" data-a="fcol" data-v="'+c+'" aria-label="'+c+'"></button>').join('')+'</div><div class="sm t" id="err" style="color:var(--er)" hidden>'+esc(t('fname_err'))+'</div><div class="g2">'+btn('close',t('cancel'))+btn('fsave',t('save'),{p:1})+'</div></div></div>';
@@ -336,6 +356,23 @@ function render(){document.documentElement.lang=S.lang;document.title=t('name');
  else if(S.sheet=='fdel'){const f=S.folders.find(x=>x.id==S.delId);
   L.innerHTML=f?'<div class="ov" data-a="close"><div class="sheet" role="dialog" aria-modal="true"><h2 class="t" style="margin:0">'+esc(t('fdel_title'))+'</h2><div class="mu sm t">'+esc(t('fdel_desc',{n:f.name}))+'</div><div class="g2">'+btn('close',t('cancel'))+btn('confirmfdel',t('del'),{d:1,icon:'Trash'})+'</div></div></div>':''}
  else L.innerHTML=''}
+// ── table view filters ──
+const KIND=x=>x.kind=='BANK'?'BANK':'NORMAL';
+function trow(x){const bank=x.kind=='BANK',cl=[bank?'b':'',x.status=='VERIFY'?'v':x.status=='NO_DISPENSE'?'n':''].join(' ').trim();
+ return '<tr'+(cl?' class="'+cl+'"':'')+'><td>'+esc(x.ref)+'</td><td>'+esc(fmtDate(x.date))+'</td><td>'+esc(x.time)+'</td><td>'+amt(x.req)+'</td>'+[0,1,2,3].map(i=>'<td>'+(x.numbers[i]??'')+'</td>').join('')+'<td>'+(x.numbers.length==4?num(x.total):'')+'</td><td>'+esc(t('st_'+x.status))+'</td><td>'+esc(bank?t('k_BANK'):(x.card||''))+'</td><td>'+esc(x.acct||'')+'</td><td>'+esc(x.code?t('n_'+x.code,{a:x.arg}):'')+'</td></tr>'}
+function tblUpdate(){const f=S.tf,base=S.entries.filter(x=>{
+  if(f.day&&x.date!==f.day)return false;
+  if(f.from||f.to){if(!x.time)return false;const m=x.time.slice(0,5),a=f.from||'00:00',b=f.to||'23:59';if(a<=b?(m<a||m>b):(m<a&&m>b))return false}
+  return true}),rows=f.kind=='all'?base:base.filter(x=>KIND(x)==f.kind),sm=summarize(rows);
+ $('#tchips').innerHTML=['all','NORMAL','BANK'].map(k=>{const a=k=='all'?base:base.filter(x=>KIND(x)==k);return '<button class="chip'+(f.kind==k?' on':'')+'" data-a="tk" data-v="'+k+'">'+esc(t('k_'+k))+' · '+a.length+' · '+num(summarize(a).grand)+'</button>'}).join('');
+ $('#tbody').innerHTML=rows.map(trow).join('');
+ $('#tsum').textContent=t('last_desc',{n:rows.length,t:num(sm.grand)});
+ $('#tfoot').textContent=t('tot')+' : '+num(sm.grand)}
+// ── sorting (folders and documents) ──
+function sorter(){const dir=S.sortDir=='asc'?1:-1,al=(a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'});
+ return (a,b)=>{if(S.sortBy=='alpha')return al(a,b)*dir;
+  const x=nameDate(a.name),y=nameDate(b.name);
+  if(x!=null&&y!=null&&x!=y)return (x-y)*dir;if(x!=null&&y==null)return -1;if(x==null&&y!=null)return 1;return al(a,b)}}
 // ── folders & multi-select ──
 function moveSel(to){const n=S.ids.size,now=Date.now();S.docs.forEach(d=>{if(S.ids.has(d.id)){d.folder=to||null;d.ts=now}});
  S.ids.clear();S.sel=false;S.sheet=null;S.fe=null;saveAll();render();toast('moved',{n})}
@@ -353,6 +390,10 @@ function delFolder(){const id=S.delId,now=Date.now();S.docs.forEach(d=>{if(d.fol
  S.folders=S.folders.filter(f=>f.id!=id);S.del[id]=now;if(S.fol===id)S.fol=null;S.sheet=null;S.delId=null;saveAll();render();toast('fdeleted')}
 function act2(a,el){const d=el.dataset;
  if(a=='theme'){sset('theme',isDark()?'light':'dark');applyTheme();render();return 1}
+ if(a=='tk'){S.tf.kind=d.v;tblUpdate();return 1}
+ if(a=='tclr'){S.tf.from=S.tf.to=S.tf.day='';['tfrom','tto','tday'].forEach(i=>{const e=$('#'+i);if(e)e.value=''});tblUpdate();return 1}
+ if(a=='sortby'){S.sortBy=d.v;S.sortDir=d.v=='alpha'?'asc':'desc';sset('sortBy',S.sortBy);sset('sortDir',S.sortDir);render();return 1}
+ if(a=='sortdir'){S.sortDir=S.sortDir=='asc'?'desc':'asc';sset('sortDir',S.sortDir);render();return 1}
  if(a=='newf'){S.fe={id:null,name:'',color:COLORS[S.folders.length%COLORS.length],after:S.sheet=='move'};S.sheet='fedit';render();return 1}
  if(a=='editf'){const f=S.folders.find(x=>x.id==d.id);if(f){S.fe={id:f.id,name:f.name,color:col(f.color)};S.sheet='fedit';render()}return 1}
  if(a=='fcol'){const i=$('#fn');if(i)S.fe.name=i.value;S.fe.color=d.v;render();return 1}
@@ -420,10 +461,11 @@ document.addEventListener('click',ev=>{const el=ev.target.closest('[data-a]');if
  else if(a=='close'){S.sheet=null;render()}else if(a=='csv'){S.csvLang=el.dataset.v;render()}
  else if(a=='flt'){S.onlyV=el.dataset.v=='1';filters();list()}else if(a=='clear'){S.q='';S.onlyV=false;render()}
  else if(a=='edit'){S.idx=+el.dataset.i;S.sheet='edit';render()}else if(a=='save')saveEdit();
- else if(a=='excel'){S.sheet='table';render()}else if(a=='export')save(false);else if(a=='csvx')save(false,'csv');else if(a=='copy')copy(el.dataset.v,el)
+ else if(a=='excel'){S.tf={kind:'all',from:'',to:'',day:''};S.sheet='table';render()}else if(a=='export')save(false);else if(a=='csvx')save(false,'csv');else if(a=='copy')copy(el.dataset.v,el)
  else if(a=='login')login();else if(a=='acct'){S.sheet='acct';render()}else if(a=='logout')logout()});
 document.addEventListener('input',ev=>{const el=ev.target;
  if(el.id=='q'){S.q=el.value;list()}else if(el.id=='dq'){S.dq=el.value;dlist()}
+ else if(el.id=='tfrom'||el.id=='tto'||el.id=='tday'){S.tf[{tfrom:'from',tto:'to',tday:'day'}[el.id]]=el.value;tblUpdate()}
  else if(el.classList.contains('n')){el.value=el.value.replace(/\D/g,'').slice(0,7);const e=$('#err');e&&(e.hidden=true)}});
 document.addEventListener('keydown',ev=>{if(ev.key=='Escape'&&S.sheet){S.sheet=null;render()}
  else if(ev.key=='Enter'&&S.sheet=='edit'&&ev.target.classList.contains('n'))saveEdit();
