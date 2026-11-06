@@ -130,6 +130,9 @@ Object.assign(D.ar,{new_folder:"مجلد جديد",select:"تحديد",done:"ت�
 Object.assign(D.en,{tbl_title:"Table view",c_ref:"Ref",c_time:"Time",c_total:"Total",c_status:"Status",c_note:"Note",tbl_hint:"Scroll sideways to see all columns."});
 Object.assign(D.fr,{tbl_title:"Vue tableau",c_ref:"Réf",c_time:"Heure",c_total:"Total",c_status:"Statut",c_note:"Note",tbl_hint:"Faites défiler pour voir toutes les colonnes."});
 Object.assign(D.ar,{tbl_title:"عرض الجدول",c_ref:"الرقم",c_time:"الوقت",c_total:"المجموع",c_status:"الحالة",c_note:"ملاحظة",tbl_hint:"مرّر جانبًا لرؤية كل الأعمدة."});
+Object.assign(D.en,{theme_dark:"Dark mode",theme_light:"Light mode"});
+Object.assign(D.fr,{theme_dark:"Mode sombre",theme_light:"Mode clair"});
+Object.assign(D.ar,{theme_dark:"الوضع الليلي",theme_light:"الوضع النهاري"});
 const COLORS=["#4f6bff","#7c5cff","#e11d8f","#dc2626","#f97316","#eab308","#16a34a","#0d9488","#0ea5e9","#64748b"];
 const col=c=>/^#[0-9a-f]{6}$/i.test(c)?c:COLORS[0];
 // ── Engine (port of Engine.kt) ──
@@ -214,7 +217,7 @@ Alert:["M12 3L2.5 20h19L12 3z","M12 10v4","M12 17.2v.01"],Ban:["M12 3a9 9 0 1 0 
 Trash:["M4 7h16","M10 11v6","M14 11v6","M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13","M9 7V4h6v3"],
 Table:["M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z","M4 10h16","M4 15h16","M10 4v16"],
 Calc:["M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z","M8 7.5h8","M8.5 12h.01","M12 12h.01","M15.5 12h.01","M8.5 16h.01","M12 16h.01","M15.5 16h.01"],
-Folder:["M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"],Move:["M5 12h14","M13 6l6 6-6 6"]};
+Folder:["M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"],Move:["M5 12h14","M13 6l6 6-6 6"],Sun:["M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z","M12 2v2","M12 20v2","M4.9 4.9l1.4 1.4","M17.7 17.7l1.4 1.4","M2 12h2","M20 12h2","M4.9 19.1l1.4-1.4","M17.7 6.3l1.4-1.4"],Moon:["M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"]};
 const ic=n=>'<svg class="i" viewBox="0 0 24 24" aria-hidden="true">'+P[n].map(d=>'<path d="'+d+'"/>').join('')+'</svg>';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
 const num=n=>n.toLocaleString('en-US'),amt=d=>d.toLocaleString('en-US',{maximumFractionDigits:2});
@@ -223,6 +226,13 @@ const sget=k=>{try{return LS&&LS.getItem(k)}catch(e){return null}},sset=(k,v)=>{
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function jget(k,def){try{const v=JSON.parse(sget(k));return v==null?def:v}catch(e){return def}}
 const detect=()=>{const l=(navigator.language||'ar').slice(0,2);return D[l]?l:'ar'};
+// ── theme ──
+const MQ=window.matchMedia?matchMedia('(prefers-color-scheme:dark)'):{matches:false};
+const isDark=()=>{const v=document.documentElement.dataset.theme;return v?v=='dark':MQ.matches};
+function applyTheme(){const v=sget('theme');if(v=='dark'||v=='light')document.documentElement.dataset.theme=v;else delete document.documentElement.dataset.theme;
+ const m=document.querySelector('meta[name=theme-color]');if(m)m.content=isDark()?'#141821':'#4f6bff'}
+applyTheme();
+if(MQ.addEventListener)MQ.addEventListener('change',()=>{applyTheme();if(typeof render=='function')render()});
 // ── state ──
 let TS=+sget('ts')||0,pt;
 const S={docs:[],del:{},cur:null,entries:[],screen:0,q:'',dq:'',onlyV:false,csvLang:'fr',lang:sget('lang')||detect(),busy:false,saving:false,homeErr:null,homeInfo:null,saveErr:false,excelErr:false,sheet:null,idx:0,delId:null,fb:false,user:null,folders:[],fol:null,sel:false,ids:new Set(),fe:null};
@@ -246,7 +256,7 @@ const btn=(a,label,o={})=>'<button class="btn '+(o.p?'p':'')+(o.d?'d':'')+'" dat
 const copyBtn=v=>'<button class="ib" data-a="copy" data-v="'+v+'" title="'+esc(t('copy_total'))+'" aria-label="'+esc(t('copy_total'))+'">'+ic('Copy')+'</button>';
 // ── views ──
 function header(){const back=S.screen==1&&S.entries.length,cd=curDoc();
- return '<header>'+(back?'<button class="ib" data-a="back" aria-label="'+esc(t('back'))+'" title="'+esc(t('back'))+'">'+ic('Back')+'</button>':'')+'<div class="logo">'+ic('Calc')+'</div><div class="grow"><h1 class="t">'+esc(back&&cd?cd.name:t('name'))+'</h1><div class="mu sm t">'+esc(back?t('results'):t('tagline'))+'</div></div><button class="ib" data-a="lang" aria-label="'+esc(t('language'))+'" title="'+esc(t('language'))+'">'+ic('Globe')+'</button>'+acctBtn()+'</header>'}
+ return '<header>'+(back?'<button class="ib" data-a="back" aria-label="'+esc(t('back'))+'" title="'+esc(t('back'))+'">'+ic('Back')+'</button>':'')+'<div class="logo">'+ic('Calc')+'</div><div class="grow"><h1 class="t">'+esc(back&&cd?cd.name:t('name'))+'</h1><div class="mu sm t">'+esc(back?t('results'):t('tagline'))+'</div></div><button class="ib" data-a="theme" aria-label="'+esc(t(isDark()?'theme_light':'theme_dark'))+'" title="'+esc(t(isDark()?'theme_light':'theme_dark'))+'">'+ic(isDark()?'Sun':'Moon')+'</button><button class="ib" data-a="lang" aria-label="'+esc(t('language'))+'" title="'+esc(t('language'))+'">'+ic('Globe')+'</button>'+acctBtn()+'</header>'}
 function acctBtn(){if(!S.fb)return'';if(!S.user)return'<button class="chip on" data-a="login">'+esc(t('signin'))+'</button>';
  const u=S.user;return'<button class="ib av" data-a="acct" aria-label="'+esc(t('account'))+'" title="'+esc(u.email)+'">'+(u.photo?'<img src="'+esc(u.photo)+'" alt="" referrerpolicy="no-referrer">':esc((u.name||u.email||'?').charAt(0).toUpperCase()))+'</button>'}
 const fid=d=>S.folders.some(f=>f.id===d.folder)?d.folder:null;
@@ -342,6 +352,7 @@ function fsave(){const i=$('#fn'),name=(i?i.value:'').trim().slice(0,40);if(!nam
 function delFolder(){const id=S.delId,now=Date.now();S.docs.forEach(d=>{if(d.folder===id){d.folder=null;d.ts=now}});
  S.folders=S.folders.filter(f=>f.id!=id);S.del[id]=now;if(S.fol===id)S.fol=null;S.sheet=null;S.delId=null;saveAll();render();toast('fdeleted')}
 function act2(a,el){const d=el.dataset;
+ if(a=='theme'){sset('theme',isDark()?'light':'dark');applyTheme();render();return 1}
  if(a=='newf'){S.fe={id:null,name:'',color:COLORS[S.folders.length%COLORS.length],after:S.sheet=='move'};S.sheet='fedit';render();return 1}
  if(a=='editf'){const f=S.folders.find(x=>x.id==d.id);if(f){S.fe={id:f.id,name:f.name,color:col(f.color)};S.sheet='fedit';render()}return 1}
  if(a=='fcol'){const i=$('#fn');if(i)S.fe.name=i.value;S.fe.color=d.v;render();return 1}
