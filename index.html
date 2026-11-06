@@ -47,7 +47,7 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 .btn .spin{border-color:rgba(255,255,255,.35);border-top-color:#fff;margin:0}
 @keyframes sp{to{transform:rotate(360deg)}}
 .stack{display:flex;flex-direction:column;gap:14px}
-.home{display:grid;gap:16px;max-width:900px;margin:0 auto}
+.home{display:grid;gap:16px;max-width:900px;margin:0 auto;grid-template-columns:minmax(0,1fr)}.home>*{min-width:0}
 .drop{margin-top:18px;border:2px dashed var(--bd);border-radius:16px;padding:22px 16px;text-align:center;color:var(--mu);transition:.15s}
 .drop.over{border-color:var(--pr);background:color-mix(in srgb,var(--pr) 8%,transparent);color:var(--pr)}
 .drop .btn{margin-top:12px}
@@ -57,15 +57,15 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 hr{border:0;height:1px;background:var(--bd);margin:16px 0;width:100%}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center}
 .stats b{display:block;font-size:16.8px}
-.res{display:grid;gap:16px;align-items:start}
+.res{display:grid;gap:16px;align-items:start;grid-template-columns:minmax(0,1fr)}.res>*{min-width:0}
 .side{display:flex;flex-direction:column;gap:14px}
-.list{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
+.list{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr))}
 .ent .eq{font-weight:700;font-variant-numeric:tabular-nums}
 .badge{font-size:12px;font-weight:700;padding:2px 10px;border-radius:50px;color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent);white-space:nowrap}
 .ov{position:fixed;inset:0;background:rgba(10,12,18,.5);display:flex;align-items:flex-end;justify-content:center;z-index:20;animation:fi .15s}
 .sheet{background:var(--card);width:100%;max-width:520px;border-radius:24px 24px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px;max-height:92vh;overflow:auto;animation:su .2s}
 @keyframes fi{from{opacity:0}}@keyframes su{from{transform:translateY(30px);opacity:0}}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
 .raw{max-height:120px;overflow:auto;background:var(--in);border:1px solid var(--bd);border-radius:13px;padding:10px;font:12px/18px ui-monospace,Consolas,monospace;color:var(--mu);white-space:pre-wrap;margin:0}
 .lang{display:flex;align-items:center;justify-content:space-between;min-height:48px;padding:8px 14px;border-radius:13px;border:1px solid var(--bd);background:transparent;cursor:pointer;width:100%;text-align:start}
 .lang.on{border-color:var(--pr);background:color-mix(in srgb,var(--pr) 12%,transparent);font-weight:700}
@@ -77,7 +77,7 @@ hr{border:0;height:1px;background:var(--bd);margin:16px 0;width:100%}
  .card{padding:22px}.big{font-size:40px}
 }
 @media (min-width:980px){
- .res{grid-template-columns:360px 1fr;gap:24px}
+ .res{grid-template-columns:360px minmax(0,1fr);gap:24px}
  .side{position:sticky;top:calc(20px + env(safe-area-inset-top,0px))}
  .tools{display:flex;gap:12px;align-items:center}.tools .field{flex:1}
 }
@@ -106,6 +106,16 @@ hr{border:0;height:1px;background:var(--bd);margin:16px 0;width:100%}
 .tw.sm0{min-height:0;flex:none}
 #prt{display:none}
 @media print{body>*:not(#prt){display:none!important}body{background:#fff}:root{padding:0}#prt{display:block;color:#000;font:12px/1.5 system-ui,Arial,sans-serif}#prt h1{font-size:20px;margin:0 0 4px}#prt .pm{color:#555}#prt .tw{overflow:visible;border:0;direction:inherit}#prt .tb{font-size:11px;white-space:normal}#prt .tb th,#prt .tb td{position:static;color:#000;background:#fff;border:1px solid #999;padding:3px 6px}#prt .tb th{background:#eee}#prt .tb tfoot td{position:static;font-weight:700}}
+/* phone header: actions on the first row, title on its own full-width row */
+header{flex-wrap:wrap;row-gap:8px}
+header .chip{white-space:nowrap;flex:none;min-height:40px;padding:0 14px}
+@media (max-width:640px){
+ header{gap:8px;padding:14px 0 6px}
+ header .logo{width:42px;height:42px;border-radius:12px}
+ header .grow{order:3;flex:1 0 100%}
+ header .ib[data-a=theme]{margin-inline-start:auto}
+ h1{font-size:17px;word-break:normal;overflow-wrap:anywhere}
+}
 </style>
 </head>
 <body>
@@ -599,7 +609,7 @@ function dupsSheet(){const g=findDups();
  return OV('<h2 class="t" style="margin:0">'+esc(t('dups_title'))+'</h2><div class="mu sm t">'+esc(g.length?t('dup_n',{n:g.length}):t('dups_none'))+'</div>'+g.slice(0,100).map(a=>{const x=a[0].x;return '<div class="card ent t" style="--c:var(--er);padding:12px"><div class="row"><b class="ltr">#'+esc(x.ref)+'</b><span class="mu sm ltr grow">'+esc([fmtDate(x.date),x.time,'REQ '+amt(x.req)].filter(Boolean).join(' · '))+'</span></div><div class="mu sm" style="margin-top:6px">'+esc(t('dup_in')+' '+a.map(y=>y.d.name).join(' · '))+'</div></div>'}).join('')+btn('close',t('done')))}
 function denSheet(){return OV('<h2 class="t" style="margin:0">'+esc(t('den_title'))+'</h2><div class="mu sm t">'+esc(t('den_desc'))+'</div><div class="g2">'+[0,1,2,3].map(i=>'<label><span class="mu sm t">'+esc(t('note_n',{n:i+1}))+'</span><div class="field"><input class="n" inputmode="numeric" maxlength="7" placeholder="0" value="'+(S.den[i]||'')+'"></div></label>').join('')+'</div><div class="sm t" id="err" style="color:var(--er)" hidden>'+esc(t('den_err'))+'</div><div class="g2">'+btn('close',t('cancel'))+btn('densave',t('save'),{p:1})+'</div>')}
 function toolsCard(){return '<section class="card"><div class="row"><div class="tile">'+ic('Calc')+'</div><div class="grow t"><h2>'+esc(t('tools_title'))+'</h2></div></div><div class="chips" style="margin-top:14px">'+[['den','den_title'],['fstats','fs_btn'],['backup','backup_export'],['bimport','backup_import'],['trash','trash_title'],['dups','dups_title']].map(([a,k])=>'<button class="chip" data-a="'+a+'">'+esc(t(k))+(a=='trash'&&S.trash.length?' ('+S.trash.length+')':'')+'</button>').join('')+'</div>'+(S.docs.some(d=>hasD(d.entries))?'':'<div class="mu sm t" style="margin-top:10px">'+esc(t('den_unset'))+'</div>')+'</section>'}
-function valLine(e){return hasD(e)?'<div class="ltr" style="font-weight:700;margin-top:6px">'+esc(t('value'))+': '+num(sum(cassVals(e)))+' '+esc(curOf(e))+'</div>':''}
+function valLine(e){return hasD(e)?'<div class="t" style="font-weight:700;margin-top:6px">'+esc(t('value'))+': <span class="ltr">'+num(sum(cassVals(e)))+' '+esc(curOf(e))+'</span></div>':''}
 function devCard(e){const x=[...e].reverse().find(y=>y.rem);if(!x)return '';const d=denOf(x),th=k=>'<th>'+esc(t(k))+'</th>',rj=x.rejc||[0,0,0,0];
  return '<div class="card"><h2 class="t" style="margin:0">'+esc(t('dev_title'))+'</h2><div class="mu xs ltr" style="margin:2px 0 12px">'+esc([fmtDate(x.date),x.time].filter(Boolean).join(' · '))+'</div><div class="tw sm0"><table class="tb"><thead><tr><th></th>'+(d?th('den_val'):'')+th('rem_l')+th('rej_l')+(d?th('value'):'')+'</tr></thead><tbody>'+x.rem.map((n,i)=>'<tr><td>'+esc(t('note_n',{n:i+1}))+'</td>'+(d?'<td>'+num(d[i])+'</td>':'')+'<td>'+num(n)+'</td><td>'+num(rj[i]||0)+'</td>'+(d?'<td>'+num(n*d[i])+'</td>':'')+'</tr>').join('')+'</tbody><tfoot><tr><td>'+esc(t('tot'))+'</td>'+(d?'<td></td>':'')+'<td>'+num(sum(x.rem))+'</td><td>'+num(sum(rj))+'</td>'+(d?'<td>'+num(x.rem.reduce((s,n,i)=>s+n*d[i],0))+'</td>':'')+'</tr></tfoot></table></div></div>'}
 function declCard(e){const m={};e.forEach(x=>{if(x.code=='DECLINED'){const k=x.arg||'?';m[k]=(m[k]||0)+1}});const ks=Object.keys(m).sort((a,b)=>m[b]-m[a]);if(!ks.length)return '';
