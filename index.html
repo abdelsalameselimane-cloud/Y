@@ -104,6 +104,9 @@ Object.assign(D.ar,{signin:"تسجيل الدخول",account:"الحساب",sign
 Object.assign(D.en,{docs_title:"Your documents",docs_search:"Search documents by name",docs_none:"No document matches that name.",del:"Delete",del_title:"Delete this document?",del_desc:"“{n}” will be removed from your account on every device.",deleted:"Document deleted",imported:"{n} document(s) imported",skipped:"Skipped (no REQ found): {names}",prev_doc:"Previous session"});
 Object.assign(D.fr,{docs_title:"Vos documents",docs_search:"Rechercher un document par nom",docs_none:"Aucun document ne correspond à ce nom.",del:"Supprimer",del_title:"Supprimer ce document ?",del_desc:"« {n} » sera supprimé de votre compte sur tous les appareils.",deleted:"Document supprimé",imported:"{n} document(s) importé(s)",skipped:"Ignorés (aucun REQ trouvé) : {names}",prev_doc:"Session précédente"});
 Object.assign(D.ar,{docs_title:"مستنداتك",docs_search:"ابحث عن مستند بالاسم",docs_none:"لا يوجد مستند بهذا الاسم.",del:"حذف",del_title:"حذف هذا المستند؟",del_desc:"سيُحذف «{n}» من حسابك على جميع الأجهزة.",deleted:"تم حذف المستند",imported:"تم استيراد {n} مستند",skipped:"تم تخطي (لا يوجد REQ): {names}",prev_doc:"الجلسة السابقة"});
+Object.assign(D.en,{export_csv:"Export to Excel (.xlsx)",csv_alt:"Export as CSV"});
+Object.assign(D.fr,{export_csv:"Exporter vers Excel (.xlsx)",csv_alt:"Exporter en CSV"});
+Object.assign(D.ar,{export_csv:"تصدير إلى Excel (.xlsx)",csv_alt:"تصدير بصيغة CSV"});
 // ── Engine (port of Engine.kt) ──
 const SEP='\\s*[-–—,;|]\\s*';
 const R={ESC:/\x1B\[[0-9;]*[A-Za-z]|\x1B[()][0-9A-Za-z]|\x1B[A-Za-z]\d*|[\x00-\x08\x0B\x0C\x0E-\x1F]/g,REQ:/REQ\s*:\s*([\d.,]+)/,
@@ -141,6 +144,42 @@ function toCsv(e,lang){const fr=lang!='en',SP=fr?';':',';
   const rq=fr?String(x.req).replace('.',','):String(x.req);
   s+=[x.ref,x.time,rq,...[0,1,2,3].map(i=>x.numbers[i]??''),x.total,st].join(SP)+SP+'"'+noteText(x,lang).replace(/"/g,'""')+'"\n'}
  return s+(fr?'TOTAL GÉNÉRAL':'GRAND TOTAL')+SP.repeat(7)+summarize(e).grand+SP.repeat(2)+'\n'}
+
+// ── XLSX export (no libraries): minimal OOXML package inside a store-only ZIP ──
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+const crc32=b=>{let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=CRC[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0};
+function zip(files,type){const enc=new TextEncoder(),parts=[],cd=[];let off=0;
+ const u16=v=>[v&255,(v>>>8)&255],u32=v=>[v&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255];
+ for(const [n,d] of files){const nb=enc.encode(n),c=crc32(d);
+  const lh=new Uint8Array([0x50,0x4b,3,4,...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(c),...u32(d.length),...u32(d.length),...u16(nb.length),...u16(0)]);
+  parts.push(lh,nb,d);
+  cd.push(new Uint8Array([0x50,0x4b,1,2,...u16(20),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(c),...u32(d.length),...u32(d.length),...u16(nb.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off)]),nb);
+  off+=lh.length+nb.length+d.length}
+ let cs=0;cd.forEach(x=>cs+=x.length);
+ const end=new Uint8Array([0x50,0x4b,5,6,0,0,0,0,...u16(files.length),...u16(files.length),...u32(cs),...u32(off),0,0]);
+ return new Blob([...parts,...cd,end],{type})}
+function toXlsx(e,lang){const fr=lang!='en',enc=new TextEncoder(),
+ H=(fr?'Réf,Heure,REQ,N1,N2,N3,N4,Total,Statut,Note':'Ref,Time,REQ,N1,N2,N3,N4,Total,Status,Note').split(','),
+ W=[12,11,12,8,8,8,8,10,20,46],
+ X=s=>String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]),
+ cell=(r,i,v,st)=>{if(v===''||v==null)return'';const a=String.fromCharCode(65+i)+r,s=st?' s="1"':'';
+  return typeof v=='number'?'<c r="'+a+'"'+s+'><v>'+v+'</v></c>':'<c r="'+a+'" t="inlineStr"'+s+'><is><t xml:space="preserve">'+X(v)+'</t></is></c>'},
+ row=(r,cs)=>'<row r="'+r+'">'+cs.join('')+'</row>',
+ rows=[row(1,H.map((h,i)=>cell(1,i,h,1)))];
+ e.forEach((x,k)=>{const r=k+2,st=!fr?x.status:({VALID:'VALIDE',NO_DISPENSE:'SANS DISTRIBUTION',VERIFY:'À VÉRIFIER'})[x.status];
+  rows.push(row(r,[cell(r,0,/^\d+$/.test(x.ref)?+x.ref:x.ref),cell(r,1,x.time),cell(r,2,x.req),...[0,1,2,3].map(i=>cell(r,3+i,x.numbers[i]??'')),cell(r,7,x.total),cell(r,8,st),cell(r,9,noteText(x,lang))]))});
+ const r=e.length+2;rows.push(row(r,[cell(r,0,fr?'TOTAL GÉNÉRAL':'GRAND TOTAL',1),cell(r,7,summarize(e).grand,1)]));
+ const NS='http://schemas.openxmlformats.org/spreadsheetml/2006/main',RN='http://schemas.openxmlformats.org/officeDocument/2006/relationships',PK='http://schemas.openxmlformats.org/package/2006/relationships',HD='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+ const F=[
+ ['[Content_Types].xml',HD+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
+ ['_rels/.rels',HD+'<Relationships xmlns="'+PK+'"><Relationship Id="rId1" Type="'+RN+'/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
+ ['xl/workbook.xml',HD+'<workbook xmlns="'+NS+'" xmlns:r="'+RN+'"><sheets><sheet name="REQ" sheetId="1" r:id="rId1"/></sheets></workbook>'],
+ ['xl/_rels/workbook.xml.rels',HD+'<Relationships xmlns="'+PK+'"><Relationship Id="rId1" Type="'+RN+'/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="'+RN+'/styles" Target="styles.xml"/></Relationships>'],
+ ['xl/styles.xml',HD+'<styleSheet xmlns="'+NS+'"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'],
+ ['xl/worksheets/sheet1.xml',HD+'<worksheet xmlns="'+NS+'"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>'+W.map((w,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>').join('')+'</cols><sheetData>'+rows.join('')+'</sheetData></worksheet>']
+ ].map(([n,s])=>[n,enc.encode(s)]);
+ return zip(F,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
+const b64=u=>{let s='';for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(s)};
 // ── helpers / icons ──
 const P={User:["M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z","M4 21a8 8 0 0 1 16 0"],Upload:["M12 15V3","M7 8l5-5 5 5","M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"],Download:["M12 3v12","M7 10l5 5 5-5","M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"],
 Copy:["M9 9h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1z","M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"],Check:["M5 12.5l4.5 4.5L19 7.5"],
@@ -203,7 +242,7 @@ function results(){const s=summarize(S.entries),st=(n,l,c)=>'<div><b style="colo
  return '<div class="res"><aside class="side"><div class="card"><div class="row"><div class="grow t"><div class="mu sm">'+esc(t('grand'))+'</div><div class="big ltr">'+num(s.grand)+'</div><div class="mu sm">'+esc(t('grand_desc'))+'</div></div>'+copyBtn(s.grand)+'</div><hr>'+
  '<div class="stats">'+st(s.detected,t('detected'),'var(--tx)')+st(s.valid,t('valid'),'var(--ok)')+st(s.verify,t('verify'),s.verify?'var(--er)':'var(--mu)')+st(s.noDispense,t('no_dispense'),'var(--mu)')+'</div>'+
  '<div class="mu sm t" style="margin-top:20px">'+esc(t('csv_lang'))+'</div><div class="chips" style="margin:6px 0 14px">'+['fr','en'].map(c=>'<button class="chip '+(S.csvLang==c?'on':'')+'" data-a="csv" data-v="'+c+'">'+esc(t('lang_'+c))+'</button>').join('')+'</div>'+
- '<div class="stack" style="gap:10px">'+btn('export',S.saving?t('exporting'):t('export_csv'),{p:1,icon:'Download',dis:S.saving,load:S.saving})+btn('excel',t('open_excel'),{icon:'Table',dis:S.saving})+'</div></div>'+
+ '<div class="stack" style="gap:10px">'+btn('export',S.saving?t('exporting'):t('export_csv'),{p:1,icon:'Download',dis:S.saving,load:S.saving})+btn('excel',t('open_excel'),{icon:'Table',dis:S.saving})+btn('csvx',t('csv_alt'),{icon:'Download',dis:S.saving})+'</div></div>'+
  (S.saveErr?banner('ERR',t('err_save'),t('err_save_desc'),btn('export',t('try_again'))):'')+(S.excelErr?banner('ERR',t('err_excel'),t('err_excel_desc')):'')+
  (s.verify?banner('ERR',t('verify_banner',{n:s.verify}),t('verify_banner_desc')):banner('OK',t('all_ok'),t('all_ok_desc')))+'</aside>'+
  '<main class="stack"><div class="tools"><label class="field">'+ic('Search')+'<input id="q" type="search" value="'+esc(S.q)+'" placeholder="'+esc(t('search'))+'" aria-label="'+esc(t('search'))+'"></label><div class="chips" id="flt"></div></div><div class="list" id="list"></div></main></div>'}
@@ -255,11 +294,12 @@ function delDoc(){const id=S.delId;S.docs=S.docs.filter(d=>d.id!=id);S.del[id]=D
  if(S.cur==id){S.cur=null;S.entries=[];sdel('cur')}
  S.sheet=null;S.delId=null;saveAll();render();toast('deleted')}
 function go(n){S.screen=n;if(n==1){if(location.hash!='#results')location.hash='results'}else if(location.hash)history.replaceState(null,'',location.pathname+location.search);render();window.scrollTo(0,0)}
-async function save(){S.saving=true;S.saveErr=false;S.excelErr=false;render();
- const cd=curDoc(),base=(cd?cd.name.replace(/\.[^.]*$/,''):'REQ_report').replace(/[\\/:*?"<>|]/g,'_')||'REQ_report';
- const data=new Blob([toCsv(S.entries,S.csvLang)],{type:'text/csv;charset=utf-8'});let ok=false;
- try{const a=document.createElement('a');a.href=URL.createObjectURL(data);a.download=base+'.csv';document.body.appendChild(a);a.click();a.remove();ok=true}catch(e){}
- S.saving=false;if(!ok)S.saveErr=true;render();if(ok)toast('saved')}
+async function save(open,fmt){S.saving=true;S.saveErr=false;S.excelErr=false;render();
+ const cd=curDoc(),base=(cd?cd.name.replace(/\.[^.]*$/,''):'REQ_report').replace(/[\\/:*?"<>|]/g,'_')||'REQ_report',xl=fmt!='csv';let ok=false;
+ try{const blob=xl?toXlsx(S.entries,S.csvLang):new Blob([toCsv(S.entries,S.csvLang)],{type:'text/csv;charset=utf-8'}),name=base+(xl?'.xlsx':'.csv');
+  if(window.Android&&Android.saveFile){const r=Android.saveFile(name,blob.type.split(';')[0],b64(new Uint8Array(await blob.arrayBuffer())),!!open);ok=r!='err';if(r=='noapp')S.excelErr=true}
+  else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();ok=true}}catch(e){}
+ S.saving=false;if(!ok)S.saveErr=true;render();if(ok&&!S.excelErr)toast('saved')}
 async function copy(v,b){let ok=false;try{await navigator.clipboard.writeText(v);ok=true}catch(e){try{const x=document.createElement('textarea');x.value=v;document.body.appendChild(x);x.select();ok=document.execCommand('copy');x.remove()}catch(e2){}}
  if(ok){const h=b.innerHTML;b.innerHTML=ic('Check');b.style.color='var(--ok)';setTimeout(()=>{b.innerHTML=h;b.style.color=''},1400)}}
 function saveEdit(){const v=[...document.querySelectorAll('#layer .n')].map(i=>i.value.trim());
@@ -273,7 +313,7 @@ document.addEventListener('click',ev=>{const el=ev.target.closest('[data-a]');if
  else if(a=='close'){S.sheet=null;render()}else if(a=='csv'){S.csvLang=el.dataset.v;render()}
  else if(a=='flt'){S.onlyV=el.dataset.v=='1';filters();list()}else if(a=='clear'){S.q='';S.onlyV=false;render()}
  else if(a=='edit'){S.idx=+el.dataset.i;S.sheet='edit';render()}else if(a=='save')saveEdit();
- else if(a=='export'||a=='excel')save();else if(a=='copy')copy(el.dataset.v,el)
+ else if(a=='export'||a=='excel')save(a=='excel');else if(a=='csvx')save(false,'csv');else if(a=='copy')copy(el.dataset.v,el)
  else if(a=='login')login();else if(a=='acct'){S.sheet='acct';render()}else if(a=='logout')logout()});
 document.addEventListener('input',ev=>{const el=ev.target;
  if(el.id=='q'){S.q=el.value;list()}else if(el.id=='dq'){S.dq=el.value;dlist()}
