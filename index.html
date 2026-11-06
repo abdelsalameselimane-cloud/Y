@@ -84,6 +84,15 @@ hr{border:0;height:1px;background:var(--bd);margin:16px 0;width:100%}
 @media (max-width:979px){.tools .chips{margin-top:10px}}
 .av{background:linear-gradient(135deg,var(--pr),var(--pr2));color:#fff;font-weight:700;overflow:hidden;padding:0;border-radius:50%}.av img{width:100%;height:100%;object-fit:cover}
 .who{display:flex;align-items:center;gap:14px}.who .av{width:48px;height:48px;cursor:default}
+.fc{cursor:pointer;border-top:4px solid var(--c)}.fc:hover{border-color:var(--c)}
+.sw{display:flex;gap:10px;flex-wrap:wrap}.sw button{width:38px;height:38px;border-radius:50%;border:3px solid transparent;background:var(--c);cursor:pointer;padding:0}.sw button.on{border-color:var(--tx);box-shadow:inset 0 0 0 3px var(--card)}
+.chk{width:26px;height:26px;border-radius:50%;border:2px solid var(--bd);display:grid;place-items:center;flex:none;color:#fff}.chk.on{background:var(--pr);border-color:var(--pr)}.chk svg{width:16px;height:16px;stroke-width:2.6}
+.dc.sel{border-color:var(--pr);background:color-mix(in srgb,var(--pr) 8%,var(--card))}
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--card);border-top:1px solid var(--bd);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;box-shadow:0 -6px 20px rgba(0,0,0,.1)}
+.bar .btn{width:auto;min-height:44px;padding:0 14px}
+.home.selm{padding-bottom:110px}
+.dot{width:14px;height:14px;border-radius:50%;background:var(--c);flex:none;display:inline-block}
+.dc{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 </style>
 </head>
 <body>
@@ -107,6 +116,11 @@ Object.assign(D.ar,{docs_title:"مستنداتك",docs_search:"ابحث عن م�
 Object.assign(D.en,{export_csv:"Export to Excel (.xlsx)",csv_alt:"Export as CSV"});
 Object.assign(D.fr,{export_csv:"Exporter vers Excel (.xlsx)",csv_alt:"Exporter en CSV"});
 Object.assign(D.ar,{export_csv:"تصدير إلى Excel (.xlsx)",csv_alt:"تصدير بصيغة CSV"});
+Object.assign(D.en,{new_folder:"New folder",select:"Select",done:"Done",sel_n:"{n} selected",sel_all:"Select all",desel:"Deselect all",move:"Move",move_title:"Move to…",move_desc:"Choose where to put {n} document(s).",no_folder:"Main list (no folder)",moved:"{n} document(s) moved",bdel_title:"Delete {n} document(s)?",bdel_desc:"They will be removed from your account on every device.",deleted_n:"{n} document(s) deleted",fnew_title:"New folder",fedit_title:"Edit folder",fname:"Folder name",fname_ph:"e.g. January logs",fcolor:"Color",fname_err:"Enter a folder name.",f_count:"{n} document(s)",fdel_title:"Delete this folder?",fdel_desc:"Folder “{n}” will be deleted. Its documents are kept and go back to the main list.",fdeleted:"Folder deleted",fsaved:"Folder saved",folder_empty:"This folder is empty. Import files here or move documents into it.",docs_empty:"No documents yet."});
+Object.assign(D.fr,{new_folder:"Nouveau dossier",select:"Sélectionner",done:"Terminé",sel_n:"{n} sélectionné(s)",sel_all:"Tout sélectionner",desel:"Tout désélectionner",move:"Déplacer",move_title:"Déplacer vers…",move_desc:"Choisissez où placer {n} document(s).",no_folder:"Liste principale (sans dossier)",moved:"{n} document(s) déplacé(s)",bdel_title:"Supprimer {n} document(s) ?",bdel_desc:"Ils seront supprimés de votre compte sur tous les appareils.",deleted_n:"{n} document(s) supprimé(s)",fnew_title:"Nouveau dossier",fedit_title:"Modifier le dossier",fname:"Nom du dossier",fname_ph:"ex. Journaux de janvier",fcolor:"Couleur",fname_err:"Saisissez un nom de dossier.",f_count:"{n} document(s)",fdel_title:"Supprimer ce dossier ?",fdel_desc:"Le dossier « {n} » sera supprimé. Ses documents sont conservés et retournent à la liste principale.",fdeleted:"Dossier supprimé",fsaved:"Dossier enregistré",folder_empty:"Ce dossier est vide. Importez des fichiers ici ou déplacez-y des documents.",docs_empty:"Aucun document pour le moment."});
+Object.assign(D.ar,{new_folder:"مجلد جديد",select:"تحديد",done:"تم",sel_n:"تم تحديد {n}",sel_all:"تحديد الكل",desel:"إلغاء تحديد الكل",move:"نقل",move_title:"نقل إلى…",move_desc:"اختر المكان الذي تريد وضع {n} مستند فيه.",no_folder:"القائمة الرئيسية (بدون مجلد)",moved:"تم نقل {n} مستند",bdel_title:"حذف {n} مستند؟",bdel_desc:"سيتم حذفها من حسابك على جميع الأجهزة.",deleted_n:"تم حذف {n} مستند",fnew_title:"مجلد جديد",fedit_title:"تعديل المجلد",fname:"اسم المجلد",fname_ph:"مثال: سجلات يناير",fcolor:"اللون",fname_err:"اكتب اسم المجلد.",f_count:"{n} مستند",fdel_title:"حذف هذا المجلد؟",fdel_desc:"سيتم حذف المجلد «{n}». تبقى مستنداته محفوظة وتعود إلى القائمة الرئيسية.",fdeleted:"تم حذف المجلد",fsaved:"تم حفظ المجلد",folder_empty:"هذا المجلد فارغ. استورد ملفات إليه أو انقل مستندات إليه.",docs_empty:"لا توجد مستندات بعد."});
+const COLORS=["#4f6bff","#7c5cff","#e11d8f","#dc2626","#f97316","#eab308","#16a34a","#0d9488","#0ea5e9","#64748b"];
+const col=c=>/^#[0-9a-f]{6}$/i.test(c)?c:COLORS[0];
 // ── Engine (port of Engine.kt) ──
 const SEP='\\s*[-–—,;|]\\s*';
 const R={ESC:/\x1B\[[0-9;]*[A-Za-z]|\x1B[()][0-9A-Za-z]|\x1B[A-Za-z]\d*|[\x00-\x08\x0B\x0C\x0E-\x1F]/g,REQ:/REQ\s*:\s*([\d.,]+)/,
@@ -188,7 +202,8 @@ Globe:["M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z","M3 12h18","M12 3c2.5 2.5 3.5 5.5 
 Alert:["M12 3L2.5 20h19L12 3z","M12 10v4","M12 17.2v.01"],Ban:["M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z","M5.6 5.6l12.8 12.8"],File:["M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z","M14 3v5h5","M9 13h6","M9 17h4"],
 Trash:["M4 7h16","M10 11v6","M14 11v6","M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13","M9 7V4h6v3"],
 Table:["M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z","M4 10h16","M4 15h16","M10 4v16"],
-Calc:["M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z","M8 7.5h8","M8.5 12h.01","M12 12h.01","M15.5 12h.01","M8.5 16h.01","M12 16h.01","M15.5 16h.01"]};
+Calc:["M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z","M8 7.5h8","M8.5 12h.01","M12 12h.01","M15.5 12h.01","M8.5 16h.01","M12 16h.01","M15.5 16h.01"],
+Folder:["M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"],Move:["M5 12h14","M13 6l6 6-6 6"]};
 const ic=n=>'<svg class="i" viewBox="0 0 24 24" aria-hidden="true">'+P[n].map(d=>'<path d="'+d+'"/>').join('')+'</svg>';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
 const num=n=>n.toLocaleString('en-US'),amt=d=>d.toLocaleString('en-US',{maximumFractionDigits:2});
@@ -199,7 +214,7 @@ function jget(k,def){try{const v=JSON.parse(sget(k));return v==null?def:v}catch(
 const detect=()=>{const l=(navigator.language||'ar').slice(0,2);return D[l]?l:'ar'};
 // ── state ──
 let TS=+sget('ts')||0,pt;
-const S={docs:[],del:{},cur:null,entries:[],screen:0,q:'',dq:'',onlyV:false,csvLang:'fr',lang:sget('lang')||detect(),busy:false,saving:false,homeErr:null,homeInfo:null,saveErr:false,excelErr:false,sheet:null,idx:0,delId:null,fb:false,user:null};
+const S={docs:[],del:{},cur:null,entries:[],screen:0,q:'',dq:'',onlyV:false,csvLang:'fr',lang:sget('lang')||detect(),busy:false,saving:false,homeErr:null,homeInfo:null,saveErr:false,excelErr:false,sheet:null,idx:0,delId:null,fb:false,user:null,folders:[],fol:null,sel:false,ids:new Set(),fe:null};
 const t=(k,a)=>{let s=D[S.lang][k]??D.en[k]??k;for(const x in a||{})s=s.replace('{'+x+'}',a[x]);return s};
 const $=s=>document.querySelector(s);
 // load saved documents (and migrate the old single-session storage)
@@ -207,10 +222,11 @@ const $=s=>document.querySelector(s);
  if(!Array.isArray(d)){d=[];const old=jget('entries',[]);
   if(Array.isArray(old)&&old.length){d=[{id:'legacy',name:t('prev_doc'),ts:+sget('ts')||Date.now(),entries:old}];sset('docs',JSON.stringify(d))}}
  S.docs=d.filter(x=>x&&x.id&&Array.isArray(x.entries));
+ const fl=jget('folders',[]);S.folders=Array.isArray(fl)?fl.filter(x=>x&&x.id&&x.name):[];
  const dl=jget('del',{});S.del=dl&&typeof dl=='object'&&!Array.isArray(dl)?dl:{};
  const c=sget('cur'),cd=S.docs.find(x=>x.id==c);if(cd){S.cur=cd.id;S.entries=cd.entries}})();
 const curDoc=()=>S.docs.find(x=>x.id==S.cur);
-function saveAll(){TS=Date.now();sset('docs',JSON.stringify(S.docs));sset('del',JSON.stringify(S.del));sset('ts',String(TS));push()}
+function saveAll(){TS=Date.now();sset('docs',JSON.stringify(S.docs));sset('folders',JSON.stringify(S.folders));sset('del',JSON.stringify(S.del));sset('ts',String(TS));push()}
 function persist(){const d=curDoc();if(d){d.entries=S.entries;d.ts=Date.now()}saveAll()}
 let tt;function toast(k,a){const el=$('#toast');el.innerHTML='<div class="toast t" role="status">'+esc(t(k,a))+'</div>';clearTimeout(tt);tt=setTimeout(()=>el.innerHTML='',2400)}
 function banner(kind,title,desc,act){const c={RUN:'var(--pr)',ERR:'var(--er)',OK:'var(--ok)'}[kind];
@@ -222,22 +238,35 @@ function header(){const back=S.screen==1&&S.entries.length,cd=curDoc();
  return '<header>'+(back?'<button class="ib" data-a="back" aria-label="'+esc(t('back'))+'" title="'+esc(t('back'))+'">'+ic('Back')+'</button>':'')+'<div class="logo">'+ic('Calc')+'</div><div class="grow"><h1 class="t">'+esc(back&&cd?cd.name:t('name'))+'</h1><div class="mu sm t">'+esc(back?t('results'):t('tagline'))+'</div></div><button class="ib" data-a="lang" aria-label="'+esc(t('language'))+'" title="'+esc(t('language'))+'">'+ic('Globe')+'</button>'+acctBtn()+'</header>'}
 function acctBtn(){if(!S.fb)return'';if(!S.user)return'<button class="chip on" data-a="login">'+esc(t('signin'))+'</button>';
  const u=S.user;return'<button class="ib av" data-a="acct" aria-label="'+esc(t('account'))+'" title="'+esc(u.email)+'">'+(u.photo?'<img src="'+esc(u.photo)+'" alt="" referrerpolicy="no-referrer">':esc((u.name||u.email||'?').charAt(0).toUpperCase()))+'</button>'}
-function home(){const has=S.docs.length;let h='<div class="home">';
+const fid=d=>S.folders.some(f=>f.id===d.folder)?d.folder:null;
+function vis(){const q=S.dq.trim().toLowerCase();return [...S.docs].sort((a,b)=>b.ts-a.ts).filter(d=>q?d.name.toLowerCase().includes(q):fid(d)===S.fol)}
+function secHead(){const cf=S.fol&&S.folders.find(f=>f.id===S.fol);let h='<div class="row">';
+ if(cf){const id=esc(cf.id),n=S.docs.filter(d=>fid(d)===cf.id).length;
+  h+='<button class="ib" data-a="upf" aria-label="'+esc(t('back'))+'" title="'+esc(t('back'))+'">'+ic('Back')+'</button><div class="tile" style="--c:'+col(cf.color)+'">'+ic('Folder')+'</div><div class="grow t"><h2>'+esc(cf.name)+'</h2><div class="mu sm">'+esc(t('f_count',{n}))+'</div></div>'+
+  '<button class="ib" data-a="editf" data-id="'+id+'" title="'+esc(t('edit'))+'" aria-label="'+esc(t('edit'))+'">'+ic('Edit')+'</button><button class="ib" data-a="delf" data-id="'+id+'" title="'+esc(t('del'))+'" aria-label="'+esc(t('del'))+'">'+ic('Trash')+'</button>'}
+ else h+='<div class="tile">'+ic('File')+'</div><div class="grow t"><h2>'+esc(t('docs_title'))+' ('+S.docs.length+')</h2></div>';
+ return h+'</div><div class="chips" style="margin-top:14px"><button class="chip" data-a="newf">+ '+esc(t('new_folder'))+'</button><button class="chip'+(S.sel?' on':'')+'" data-a="selmode">'+esc(S.sel?t('done'):t('select'))+'</button></div>'}
+function selBar(){if(!S.sel)return'';const n=S.ids.size,v=vis();
+ return '<div class="bar t" role="toolbar"><b>'+esc(t('sel_n',{n}))+'</b>'+btn('selall',v.length&&v.every(d=>S.ids.has(d.id))?t('desel'):t('sel_all'),{dis:!v.length})+btn('move',t('move'),{icon:'Move',dis:!n})+btn('bdel',t('del'),{d:1,icon:'Trash',dis:!n})+'</div>'}
+function fcard(f){const n=S.docs.filter(d=>fid(d)===f.id).length,id=esc(f.id),c=col(f.color);
+ return '<article class="card ent fc" style="--c:'+c+'" data-a="openf" data-id="'+id+'" tabindex="0" role="button"><div class="row"><div class="tile">'+ic('Folder')+'</div><div class="grow"><div class="dn">'+esc(f.name)+'</div><div class="mu sm t">'+esc(t('f_count',{n}))+'</div></div><button class="ib" data-a="editf" data-id="'+id+'" title="'+esc(t('edit'))+'" aria-label="'+esc(t('edit'))+'">'+ic('Edit')+'</button></div></article>'}
+function home(){if(S.fol&&!S.folders.some(f=>f.id===S.fol))S.fol=null;const has=true;let h='<div class="home'+(S.sel?' selm':'')+'">';
  if(S.busy)h+=banner('RUN',t('reading'),t('reading_desc'));
  else if(S.homeErr)h+=banner('ERR',t('err_'+S.homeErr),t('err_'+S.homeErr+'_desc'),btn('pick',t('try_again')));
  else if(S.homeInfo)h+=banner('OK',t('imported',{n:S.homeInfo.ok}),S.homeInfo.skipped.length?t('skipped',{names:S.homeInfo.skipped.join(', ')}):'');
  h+='<div class="card"><div class="row"><div class="tile">'+ic('Upload')+'</div><div class="grow t"><h2>'+esc(t('import_title'))+'</h2><div class="mu sm">'+esc(t('import_desc'))+'</div></div></div>'+
  '<div class="drop t" id="drop">'+esc(t('drop'))+btn('pick',t('choose_file'),{p:1,icon:'Upload',dis:S.busy,load:S.busy})+'</div></div>';
- if(has)h+='<section class="card"><div class="row"><div class="tile">'+ic('File')+'</div><div class="grow t"><h2>'+esc(t('docs_title'))+' ('+S.docs.length+')</h2></div></div>'+
+ if(has)h+='<section class="card">'+secHead()+
   '<label class="field" style="margin-top:14px">'+ic('Search')+'<input id="dq" type="search" value="'+esc(S.dq)+'" placeholder="'+esc(t('docs_search'))+'" aria-label="'+esc(t('docs_search'))+'"></label><div class="list" id="dlist" style="margin-top:14px"></div></section>';
- return h+'</div>'}
-function docCard(d){const s=summarize(d.entries),dt=new Date(d.ts).toLocaleString(S.lang=='ar'?'ar-u-nu-latn':S.lang,{dateStyle:'medium',timeStyle:'short'}),id=esc(d.id);
- return '<article class="card ent dc" style="--c:'+(s.verify?'var(--er)':'var(--pr)')+'" data-a="open" data-id="'+id+'" tabindex="0" role="button"><div class="row"><div class="tile">'+ic('File')+'</div><div class="grow"><div class="dn">'+esc(d.name)+'</div><div class="mu sm t">'+esc(t('last_desc',{n:s.detected,t:num(s.grand)}))+'</div><div class="mu xs">'+esc(dt)+'</div></div>'+
+ return h+'</div>'+selBar()}
+function docCard(d){const s=summarize(d.entries),dt=new Date(d.ts).toLocaleString(S.lang=='ar'?'ar-u-nu-latn':S.lang,{dateStyle:'medium',timeStyle:'short'}),id=esc(d.id),on=S.ids.has(d.id),fo=S.folders.find(f=>f.id===fid(d)),tc=fo?col(fo.color):'var(--pr)';
+ return '<article class="card ent dc'+(on?' sel':'')+'" style="--c:'+(s.verify?'var(--er)':'var(--pr)')+'" data-a="'+(S.sel?'tog':'open')+'" data-id="'+id+'" tabindex="0" role="button"'+(S.sel?' aria-pressed="'+on+'"':'')+'><div class="row">'+(S.sel?'<span class="chk'+(on?' on':'')+'">'+(on?ic('Check'):'')+'</span>':'')+'<div class="tile" style="--c:'+tc+'">'+ic('File')+'</div><div class="grow"><div class="dn">'+esc(d.name)+'</div><div class="mu sm t">'+esc(t('last_desc',{n:s.detected,t:num(s.grand)}))+'</div><div class="mu xs">'+esc(dt)+'</div>'+(fo&&S.dq.trim()?'<div class="xs t" style="color:'+col(fo.color)+';font-weight:700">● '+esc(fo.name)+'</div>':'')+'</div>'+
  (s.verify?'<span class="badge t" style="--c:var(--er)">'+esc(s.verify+' · '+t('verify'))+'</span>':'')+
- '<button class="ib" data-a="deldoc" data-id="'+id+'" title="'+esc(t('del'))+'" aria-label="'+esc(t('del'))+'">'+ic('Trash')+'</button></div></article>'}
-function dlist(){const el=$('#dlist');if(!el)return;const q=S.dq.trim().toLowerCase();
- const sh=[...S.docs].sort((a,b)=>b.ts-a.ts).filter(d=>!q||d.name.toLowerCase().includes(q));
- el.innerHTML=sh.length?sh.map(docCard).join(''):'<div class="card empty t"><p class="mu" style="margin:0">'+esc(t('docs_none'))+'</p></div>'}
+ (S.sel?'':'<button class="ib" data-a="deldoc" data-id="'+id+'" title="'+esc(t('del'))+'" aria-label="'+esc(t('del'))+'">'+ic('Trash')+'</button>')+'</div></article>'}
+function dlist(){const el=$('#dlist');if(!el)return;const q=S.dq.trim(),sh=vis();
+ const fs=(!q&&!S.fol)?[...S.folders].sort((a,b)=>a.name.localeCompare(b.name)).map(fcard).join(''):'';
+ const msg=q?'docs_none':S.fol?'folder_empty':'docs_empty';
+ el.innerHTML=(fs||sh.length)?fs+sh.map(docCard).join(''):'<div class="card empty t"><p class="mu" style="margin:0">'+esc(t(msg))+'</p></div>'}
 function results(){const s=summarize(S.entries),st=(n,l,c)=>'<div><b style="color:'+c+'">'+n+'</b><span class="xs mu t">'+esc(l)+'</span></div>';
  return '<div class="res"><aside class="side"><div class="card"><div class="row"><div class="grow t"><div class="mu sm">'+esc(t('grand'))+'</div><div class="big ltr">'+num(s.grand)+'</div><div class="mu sm">'+esc(t('grand_desc'))+'</div></div>'+copyBtn(s.grand)+'</div><hr>'+
  '<div class="stats">'+st(s.detected,t('detected'),'var(--tx)')+st(s.valid,t('valid'),'var(--ok)')+st(s.verify,t('verify'),s.verify?'var(--er)':'var(--mu)')+st(s.noDispense,t('no_dispense'),'var(--mu)')+'</div>'+
@@ -270,7 +299,57 @@ function render(){document.documentElement.lang=S.lang;document.title=t('name');
   const f=L.querySelector('.n');f&&f.focus()}
  else if(S.sheet=='acct'&&S.user){const u=S.user;
   L.innerHTML='<div class="ov" data-a="close"><div class="sheet" role="dialog" aria-modal="true"><h2 class="t" style="margin:0">'+esc(t('account'))+'</h2><div class="who"><div class="av ib">'+(u.photo?'<img src="'+esc(u.photo)+'" alt="" referrerpolicy="no-referrer">':esc((u.name||u.email||'?').charAt(0).toUpperCase()))+'</div><div class="grow"><b class="t">'+esc(u.name)+'</b><div class="mu sm ltr">'+esc(u.email)+'</div></div></div><div class="mu sm t">'+esc(t('acct_desc'))+'</div><div class="g2">'+btn('close',t('cancel'))+btn('logout',t('signout'),{p:1})+'</div></div></div>'}
+ else if(S.sheet=='fedit'&&S.fe){const fe=S.fe;
+  L.innerHTML='<div class="ov" data-a="close"><div class="sheet" role="dialog" aria-modal="true"><h2 class="t" style="margin:0">'+esc(t(fe.id?'fedit_title':'fnew_title'))+'</h2><label><span class="mu sm t">'+esc(t('fname'))+'</span><div class="field"><input id="fn" maxlength="40" value="'+esc(fe.name)+'" placeholder="'+esc(t('fname_ph'))+'"></div></label><div class="mu sm t">'+esc(t('fcolor'))+'</div><div class="sw">'+
+  COLORS.map(c=>'<button class="'+(c==fe.color?'on':'')+'" style="--c:'+c+'" data-a="fcol" data-v="'+c+'" aria-label="'+c+'"></button>').join('')+'</div><div class="sm t" id="err" style="color:var(--er)" hidden>'+esc(t('fname_err'))+'</div><div class="g2">'+btn('close',t('cancel'))+btn('fsave',t('save'),{p:1})+'</div></div></div>';
+  const f=L.querySelector('#fn');f&&f.focus()}
+ else if(S.sheet=='move'){const n=S.ids.size;
+  L.innerHTML='<div class="ov" data-a="close"><div class="sheet" role="dialog" aria-modal="true"><h2 class="t" style="margin:0">'+esc(t('move_title'))+'</h2><div class="mu sm t">'+esc(t('move_desc',{n}))+'</div><button class="lang" data-a="mv" data-v=""><span class="t">'+esc(t('no_folder'))+'</span></button>'+
+  S.folders.map(f=>'<button class="lang" data-a="mv" data-v="'+esc(f.id)+'"><span class="row" style="gap:10px"><span class="dot" style="--c:'+col(f.color)+'"></span><span class="t">'+esc(f.name)+'</span></span></button>').join('')+btn('newf','+ '+t('new_folder'))+btn('close',t('cancel'))+'</div></div>'}
+ else if(S.sheet=='bdel'){const n=S.ids.size;
+  L.innerHTML='<div class="ov" data-a="close"><div class="sheet" role="dialog" aria-modal="true"><h2 class="t" style="margin:0">'+esc(t('bdel_title',{n}))+'</h2><div class="mu sm t">'+esc(t('bdel_desc'))+'</div><div class="g2">'+btn('close',t('cancel'))+btn('confirmbdel',t('del'),{d:1,icon:'Trash'})+'</div></div></div>'}
+ else if(S.sheet=='fdel'){const f=S.folders.find(x=>x.id==S.delId);
+  L.innerHTML=f?'<div class="ov" data-a="close"><div class="sheet" role="dialog" aria-modal="true"><h2 class="t" style="margin:0">'+esc(t('fdel_title'))+'</h2><div class="mu sm t">'+esc(t('fdel_desc',{n:f.name}))+'</div><div class="g2">'+btn('close',t('cancel'))+btn('confirmfdel',t('del'),{d:1,icon:'Trash'})+'</div></div></div>':''}
  else L.innerHTML=''}
+// ── folders & multi-select ──
+function moveSel(to){const n=S.ids.size,now=Date.now();S.docs.forEach(d=>{if(S.ids.has(d.id)){d.folder=to||null;d.ts=now}});
+ S.ids.clear();S.sel=false;S.sheet=null;S.fe=null;saveAll();render();toast('moved',{n})}
+function delSel(){const ids=[...S.ids],now=Date.now();S.docs=S.docs.filter(d=>!S.ids.has(d.id));ids.forEach(i=>S.del[i]=now);
+ if(ids.includes(S.cur)){S.cur=null;S.entries=[];sdel('cur')}
+ S.ids.clear();S.sel=false;S.sheet=null;saveAll();render();toast('deleted_n',{n:ids.length})}
+function fsave(){const i=$('#fn'),name=(i?i.value:'').trim().slice(0,40);if(!name){$('#err').hidden=false;return}
+ const fe=S.fe;let id=fe.id;
+ if(id){const f=S.folders.find(x=>x.id==id);if(f){f.name=name;f.color=fe.color;f.ts=Date.now()}}
+ else{id=uid();S.folders.push({id,name,color:fe.color,ts:Date.now()})}
+ S.sheet=null;S.fe=null;
+ if(fe.after&&S.ids.size){moveSel(id);return}
+ saveAll();render();toast('fsaved')}
+function delFolder(){const id=S.delId,now=Date.now();S.docs.forEach(d=>{if(d.folder===id){d.folder=null;d.ts=now}});
+ S.folders=S.folders.filter(f=>f.id!=id);S.del[id]=now;if(S.fol===id)S.fol=null;S.sheet=null;S.delId=null;saveAll();render();toast('fdeleted')}
+function act2(a,el){const d=el.dataset;
+ if(a=='newf'){S.fe={id:null,name:'',color:COLORS[S.folders.length%COLORS.length],after:S.sheet=='move'};S.sheet='fedit';render();return 1}
+ if(a=='editf'){const f=S.folders.find(x=>x.id==d.id);if(f){S.fe={id:f.id,name:f.name,color:col(f.color)};S.sheet='fedit';render()}return 1}
+ if(a=='fcol'){const i=$('#fn');if(i)S.fe.name=i.value;S.fe.color=d.v;render();return 1}
+ if(a=='fsave'){fsave();return 1}
+ if(a=='delf'){S.delId=d.id;S.sheet='fdel';render();return 1}
+ if(a=='confirmfdel'){delFolder();return 1}
+ if(a=='openf'){S.fol=d.id;S.dq='';render();return 1}
+ if(a=='upf'){S.fol=null;S.dq='';render();return 1}
+ if(a=='selmode'){S.sel=!S.sel;S.ids.clear();render();return 1}
+ if(a=='tog'){S.ids.has(d.id)?S.ids.delete(d.id):S.ids.add(d.id);render();return 1}
+ if(a=='selall'){const v=vis();if(v.every(x=>S.ids.has(x.id)))v.forEach(x=>S.ids.delete(x.id));else v.forEach(x=>S.ids.add(x.id));render();return 1}
+ if(a=='move'){S.sheet='move';render();return 1}
+ if(a=='mv'){moveSel(d.v||null);return 1}
+ if(a=='bdel'){S.sheet='bdel';render();return 1}
+ if(a=='confirmbdel'){delSel();return 1}
+ return 0}
+// long-press on a document starts selection
+let lp,lpF=false;
+document.addEventListener('pointerdown',ev=>{const el=ev.target.closest&&ev.target.closest('.dc');if(!el||S.sel||ev.target.closest('.ib'))return;
+ clearTimeout(lp);lp=setTimeout(()=>{lpF=true;S.sel=true;S.ids.add(el.dataset.id);render();try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}},500)});
+['pointerup','pointercancel'].forEach(n=>document.addEventListener(n,()=>{clearTimeout(lp);if(lpF)setTimeout(()=>lpF=false,350)}));
+document.addEventListener('scroll',()=>clearTimeout(lp),true);
+document.addEventListener('contextmenu',e=>{if(e.target.closest&&e.target.closest('.dc'))e.preventDefault()});
 // ── actions ──
 function uniqName(n){const names=new Set(S.docs.map(d=>d.name));if(!names.has(n))return n;
  const m=/^(.*?)(\.[^.]*)?$/.exec(n),b=m[1],x=m[2]||'';let i=2;while(names.has(b+' ('+i+')'+x))i++;return b+' ('+i+')'+x}
@@ -281,7 +360,7 @@ async function readFiles(files){files=[...files];if(!files.length)return;
   try{const b=new Uint8Array(await f.arrayBuffer());let s='';for(let i=0;i<b.length;i+=32768)s+=String.fromCharCode.apply(null,b.subarray(i,i+32768));
    const p=parse(s);
    if(!p.length){skipped.push(f.name);continue}
-   const d={id:uid(),name:uniqName(f.name),ts:Date.now(),entries:p};S.docs.push(d);ok++;last=d}
+   const d={id:uid(),name:uniqName(f.name),ts:Date.now(),entries:p,folder:S.fol||null};S.docs.push(d);ok++;last=d}
   catch(e){failed++;skipped.push(f.name)}}
  S.busy=false;
  if(!ok){S.homeErr=failed==files.length?'open':'none';render();return}
@@ -290,7 +369,7 @@ async function readFiles(files){files=[...files];if(!files.length)return;
  S.homeInfo={ok,skipped};render()}
 function openDoc(id){const d=S.docs.find(x=>x.id==id);if(!d)return;
  S.cur=id;sset('cur',id);S.entries=d.entries;S.q='';S.onlyV=false;S.saveErr=false;S.excelErr=false;S.homeErr=null;S.homeInfo=null;go(1)}
-function delDoc(){const id=S.delId;S.docs=S.docs.filter(d=>d.id!=id);S.del[id]=Date.now();
+function delDoc(){const id=S.delId;S.docs=S.docs.filter(d=>d.id!=id);S.del[id]=Date.now();S.ids.delete(id);
  if(S.cur==id){S.cur=null;S.entries=[];sdel('cur')}
  S.sheet=null;S.delId=null;saveAll();render();toast('deleted')}
 function go(n){S.screen=n;if(n==1){if(location.hash!='#results')location.hash='results'}else if(location.hash)history.replaceState(null,'',location.pathname+location.search);render();window.scrollTo(0,0)}
@@ -306,7 +385,9 @@ function saveEdit(){const v=[...document.querySelectorAll('#layer .n')].map(i=>i
  if(v.some(x=>!/^\d+$/.test(x))){$('#err').hidden=false;return}
  S.entries[S.idx]=edit(S.entries[S.idx],v.map(Number));persist();S.sheet=null;render();toast('updated')}
 document.addEventListener('click',ev=>{const el=ev.target.closest('[data-a]');if(!el)return;const a=el.dataset.a;
+ if(lpF){lpF=false;return}
  if(a=='close'&&el.classList.contains('ov')&&ev.target!==el)return;
+ if(act2(a,el))return;
  if(a=='pick')$('#file').click();else if(a=='open')openDoc(el.dataset.id);else if(a=='back')go(0);else if(a=='lang'){S.sheet='lang';render()}
  else if(a=='deldoc'){S.delId=el.dataset.id;S.sheet='del';render()}else if(a=='confirmdel')delDoc()
  else if(a=='setlang'){S.lang=el.dataset.v;sset('lang',S.lang);S.sheet=null;render()}
@@ -320,7 +401,8 @@ document.addEventListener('input',ev=>{const el=ev.target;
  else if(el.classList.contains('n')){el.value=el.value.replace(/\D/g,'').slice(0,7);const e=$('#err');e&&(e.hidden=true)}});
 document.addEventListener('keydown',ev=>{if(ev.key=='Escape'&&S.sheet){S.sheet=null;render()}
  else if(ev.key=='Enter'&&S.sheet=='edit'&&ev.target.classList.contains('n'))saveEdit();
- else if((ev.key=='Enter'||ev.key==' ')&&ev.target.dataset&&ev.target.dataset.a=='open'){ev.preventDefault();openDoc(ev.target.dataset.id)}});
+ else if(ev.key=='Enter'&&S.sheet=='fedit'&&ev.target.id=='fn')fsave();
+ else if((ev.key=='Enter'||ev.key==' ')&&ev.target.dataset&&['open','tog','openf'].includes(ev.target.dataset.a)){ev.preventDefault();ev.target.click()}});
 $('#file').addEventListener('change',e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)readFiles(fs)});
 ['dragover','dragenter'].forEach(n=>document.addEventListener(n,e=>{if(S.screen==0&&$('#drop')){e.preventDefault();$('#drop').classList.add('over')}}));
 ['dragleave','drop'].forEach(n=>document.addEventListener(n,e=>{const d=$('#drop');d&&d.classList.remove('over')}));
@@ -328,29 +410,30 @@ document.addEventListener('drop',e=>{if(S.screen==0&&$('#drop')){e.preventDefaul
 window.addEventListener('hashchange',()=>{const n=location.hash=='#results'&&S.entries.length?1:0;if(n!=S.screen){S.screen=n;render()}});
 if(location.hash=='#results'&&S.entries.length)S.screen=1;
 // ── Cloud sync (Firebase) — one set of documents per account ──
-function pack(){return JSON.stringify({v:2,docs:S.docs,del:S.del})}
+function pack(){return JSON.stringify({v:3,docs:S.docs,del:S.del,folders:S.folders})}
 function unpack(json,ts){try{const p=JSON.parse(json);
- if(Array.isArray(p))return{docs:p.length?[{id:'legacy',name:t('prev_doc'),ts:ts||1,entries:p}]:[],del:{}};
- return{docs:(p.docs||[]).filter(x=>x&&x.id&&Array.isArray(x.entries)),del:p.del||{}}}catch(e){return{docs:[],del:{}}}}
+ if(Array.isArray(p))return{docs:p.length?[{id:'legacy',name:t('prev_doc'),ts:ts||1,entries:p}]:[],del:{},folders:[]};
+ return{docs:(p.docs||[]).filter(x=>x&&x.id&&Array.isArray(x.entries)),del:p.del||{},folders:(p.folders||[]).filter(x=>x&&x.id&&x.name)}}catch(e){return{docs:[],del:{},folders:[]}}}
 function merge(a,b){const del={...a.del};for(const k in b.del)del[k]=Math.max(del[k]||0,b.del[k]);
- const m={};[...a.docs,...b.docs].forEach(d=>{if(!m[d.id]||d.ts>m[d.id].ts)m[d.id]=d});
- return{docs:Object.values(m).filter(d=>!(del[d.id]>=d.ts)),del}}
+ const mk=(x,y)=>{const m={};[...(x||[]),...(y||[])].forEach(d=>{if(!m[d.id]||d.ts>m[d.id].ts)m[d.id]=d});return Object.values(m).filter(d=>!(del[d.id]>=d.ts))};
+ return{docs:mk(a.docs,b.docs),folders:mk(a.folders,b.folders),del}}
 function push(){if(!S.user||!window.FB)return;clearTimeout(pt);pt=setTimeout(async()=>{try{await FB.save(S.user.uid,TS,pack())}catch(e){toast('sync_err')}},800)}
 async function login(){try{await FB.login()}catch(e){if(!e||(e.code!='auth/popup-closed-by-user'&&e.code!='auth/cancelled-popup-request'))toast('login_err')}}
 async function logout(){clearTimeout(pt);try{await FB.logout()}catch(e){}
- S.docs=[];S.del={};S.cur=null;S.entries=[];TS=0;['docs','del','cur','uid','entries'].forEach(sdel);sset('ts','0');
+ S.docs=[];S.del={};S.folders=[];S.fol=null;S.sel=false;S.ids.clear();S.cur=null;S.entries=[];TS=0;['docs','del','folders','cur','uid','entries'].forEach(sdel);sset('ts','0');
  S.sheet=null;S.q='';S.dq='';S.onlyV=false;go(0)}
 function fbInit(){S.fb=true;FB.onUser(async u=>{S.user=u?{uid:u.uid,name:u.displayName||'',email:u.email||'',photo:u.photo||u.photoURL||''}:null;render();if(!u)return;
  // documents of another account must never mix into this one
  const prev=sget('uid');
- if(prev&&prev!=u.uid){S.docs=[];S.del={};S.cur=null;S.entries=[];sdel('cur');S.screen=0}
+ if(prev&&prev!=u.uid){S.docs=[];S.del={};S.folders=[];S.fol=null;S.sel=false;S.ids.clear();S.cur=null;S.entries=[];sdel('cur');S.screen=0}
  sset('uid',u.uid);
  try{const c=await FB.load(u.uid),remote=c?unpack(c.json,c.ts):{docs:[],del:{}};
-  const m=merge({docs:S.docs,del:S.del},remote);
-  S.docs=m.docs;S.del=m.del;
+  const m=merge({docs:S.docs,del:S.del,folders:S.folders},remote);
+  S.docs=m.docs;S.del=m.del;S.folders=m.folders;
   const cd=curDoc();if(cd){S.entries=cd.entries}else{S.cur=null;S.entries=[];S.screen=0}
-  const needPush=JSON.stringify(merge(remote,{docs:[],del:{}}).docs.map(d=>d.id+':'+d.ts).sort())!=JSON.stringify(S.docs.map(d=>d.id+':'+d.ts).sort())||JSON.stringify(remote.del)!=JSON.stringify(S.del);
+  const mr=merge(remote,{docs:[],del:{},folders:[]}),fk=a=>JSON.stringify((a||[]).map(d=>d.id+':'+d.ts).sort()),needPush=fk(mr.folders)!=fk(S.folders)||JSON.stringify(mr.docs.map(d=>d.id+':'+d.ts).sort())!=JSON.stringify(S.docs.map(d=>d.id+':'+d.ts).sort())||JSON.stringify(remote.del)!=JSON.stringify(S.del);
   TS=Date.now();sset('docs',JSON.stringify(S.docs));sset('del',JSON.stringify(S.del));sset('ts',String(TS));
+  sset('folders',JSON.stringify(S.folders));
   if(needPush)await FB.save(u.uid,TS,pack());
   render();toast('synced')}
  catch(e){toast('sync_err')}})}
