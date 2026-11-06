@@ -102,6 +102,10 @@ hr{border:0;height:1px;background:var(--bd);margin:16px 0;width:100%}
 .tf{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}.tf label{display:flex;flex-direction:column;gap:2px}.tf .field{min-height:42px;padding:0 10px}
 .tb tfoot td{position:sticky;bottom:0;background:var(--in);font-weight:700;border-bottom:0}
 .dc{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.tb tr.m td{background:color-mix(in srgb,var(--er) 12%,transparent)}
+.tw.sm0{min-height:0;flex:none}
+#prt{display:none}
+@media print{body>*:not(#prt){display:none!important}body{background:#fff}:root{padding:0}#prt{display:block;color:#000;font:12px/1.5 system-ui,Arial,sans-serif}#prt h1{font-size:20px;margin:0 0 4px}#prt .pm{color:#555}#prt .tw{overflow:visible;border:0;direction:inherit}#prt .tb{font-size:11px;white-space:normal}#prt .tb th,#prt .tb td{position:static;color:#000;background:#fff;border:1px solid #999;padding:3px 6px}#prt .tb th{background:#eee}#prt .tb tfoot td{position:static;font-weight:700}}
 </style>
 </head>
 <body>
@@ -109,6 +113,8 @@ hr{border:0;height:1px;background:var(--bd);margin:16px 0;width:100%}
 <div id="layer"></div>
 <div id="toast"></div>
 <input type="file" id="file" multiple hidden>
+<input type="file" id="bfile" accept=".json,application/json" hidden>
+<div id="prt"></div>
 <script>
 // ── i18n ──
 const D={
@@ -172,26 +178,32 @@ function parse(input){
   for(let j=i+1;j<Math.min(end,i+4);j++){if(!l[j].trim())continue;const m=R.FOUR.exec(l[j]);
    if(m)nums=m.slice(1,5).map(Number);else if(R.ANY.test(l[j]))bad=l[j].trim();break}
   const raw=l.slice(i,end).join('\n').trim(),rc=(R.RC.exec(raw)||[])[1];
+  const win=l.slice(i,Math.min(k+1<idx.length?idx[k+1]:l.length,i+26)).join('\n'),gm=re=>{const m=re.exec(win);return m?m.slice(1,5).map(Number):null},
+   den=gm(/DENOMINATION\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/),disp=gm(/DISPENSED\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/),rejc=gm(/REJECTED\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/),rem=gm(/REMAINING\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/),
+   cur=(/REQ\s*:\s*[\d.,]+\s*([A-Z]{3})\b/.exec(l[i])||[])[1]||'',rr=rc?/\bRC\s+\d{3}\b[ \t]*([A-Z][A-Z _\-]*)/.exec(raw):null,why=rr?rr[1].trim().replace(/\s*-\s*\S+$/,''):'';
   let status,note='',code='',arg='';
   if(nums.length==4){status='VALID';const np=R.NP.exec(raw);
    if(np&&sum(np[1].split(',').map(x=>parseInt(x)||0))!=sum(nums)){status='VERIFY';note='Sum differs from NOTES PRESENTED';code='SUM'}}
   else if(bad){status='VERIFY';note='Expected 4 numbers: '+bad;code='BAD';arg=bad}
   else if(!bad&&!rc&&a>0&&(()=>{const np=R.NP.exec(raw);if(!np)return 0;const v=np[1].split(',').map(x=>parseInt(x)||0);if(v.length==4&&sum(v)>0){nums=v;return 1}return 0})()){status='VALID';note='Taken from NOTES PRESENTED';code='FROMNP'}
-  else if(a==0||rc){status='NO_DISPENSE';note=rc?'Declined RC '+rc:'No cash';code=rc?'DECLINED':'NOCASH';arg=rc||''}
+  else if(a==0||rc){status='NO_DISPENSE';note=rc?'Declined RC '+rc+(why?' '+why:''):'No cash';code=rc?'DECLINED':'NOCASH';arg=rc?rc+(why?' '+why:''):''}
   else if(type&&!/WITHDRAW|CASH/.test(type)){status='NO_DISPENSE';note='No notes dispensed ('+type+')';code='NONCASH';arg=type}
   else{status='VERIFY';note='REQ > 0 but no four-number line';code='NOLINE'}
   const key=[ref,date,time,a,nums.join('-')].join('|');
-  if(!seen.has(key)){seen.add(key);out.push({type,ref,date,time,req:a,numbers:nums,total:sum(nums),status,note,raw,code,arg,card,acct,kind})}
- });return out}
+  if(!seen.has(key)){seen.add(key);out.push({type,ref,date,time,req:a,numbers:nums,total:sum(nums),status,note,raw,code,arg,card,acct,kind,cur,den,disp,rejc,rem})}
+ });
+ // the machine's cumulative DISPENSED counter must grow by exactly the notes presented
+ let pv=null;out.forEach(x=>{if(!x.disp)return;if(pv&&x.status=='VALID'&&x.numbers.length==4){const d=x.disp.map((v,i)=>v-pv[i]);if(d.every(v=>v>=0)&&d.some((v,i)=>v!=x.numbers[i])){x.cm=true;x.cmd=d}}pv=x.disp});
+ return out}
 const summarize=e=>({detected:e.length,valid:e.filter(x=>x.status=='VALID').length,verify:e.filter(x=>x.status=='VERIFY').length,noDispense:e.filter(x=>x.status=='NO_DISPENSE').length,grand:sum(e.filter(x=>x.status=='VALID').map(x=>x.total))});
-const edit=(e,n)=>({...e,numbers:n,total:sum(n),status:n.length==4?'VALID':'VERIFY',note:'Edited',code:'EDITED',arg:''});
+const edit=(e,n)=>({...e,numbers:n,total:sum(n),status:n.length==4?'VALID':'VERIFY',note:'Edited',code:'EDITED',arg:'',cm:false,cmd:null});
 function noteText(x,lang){if(lang=='en')return x.note;return({SUM:'La somme diffère de NOTES PRESENTED',BAD:'Quatre nombres attendus : '+x.arg,DECLINED:'Refusé RC '+x.arg,NOCASH:'Aucun retrait',NOLINE:'REQ > 0 mais aucune ligne de quatre nombres',EDITED:'Modifié',FROMNP:'Nombres pris de NOTES PRESENTED',NONCASH:'Aucun billet distribué ('+x.arg+')'})[x.code]||x.note}
 function toCsv(e,lang){const fr=lang!='en',SP=fr?';':',';
- let s='﻿'+(fr?'Réf,Date,Heure,REQ,N1,N2,N3,N4,Total,Statut,Carte,Compte,Note':'Ref,Date,Time,REQ,N1,N2,N3,N4,Total,Status,Card,Account,Note').split(',').join(SP)+'\n';
- for(const x of e){const st=!fr?x.status:({VALID:'VALIDE',NO_DISPENSE:'SANS DISTRIBUTION',VERIFY:'À VÉRIFIER'})[x.status];
+ let s='﻿'+(fr?'Réf,Date,Heure,REQ,N1,N2,N3,N4,Total,Statut,Carte,Compte,Note,Calcul,Écart':'Ref,Date,Time,REQ,N1,N2,N3,N4,Total,Status,Card,Account,Note,Calc,Diff').split(',').join(SP)+'\n';
+ for(const x of e){const cc=calcOf(x);const st=!fr?x.status:({VALID:'VALIDE',NO_DISPENSE:'SANS DISTRIBUTION',VERIFY:'À VÉRIFIER'})[x.status];
   const rq=fr?String(x.req).replace('.',','):String(x.req);
-  s+=[x.ref,fmtDate(x.date),x.time,rq,...[0,1,2,3].map(i=>x.numbers[i]??''),x.total,st,cardCell(x,fr),x.acct||''].join(SP)+SP+'"'+noteText(x,lang).replace(/"/g,'""')+'"\n'}
- return s+(fr?'TOTAL GÉNÉRAL':'GRAND TOTAL')+SP.repeat(8)+summarize(e).grand+SP.repeat(4)+'\n'}
+  s+=[x.ref,fmtDate(x.date),x.time,rq,...[0,1,2,3].map(i=>x.numbers[i]??''),x.total,st,cardCell(x,fr),x.acct||''].join(SP)+SP+'"'+noteText(x,lang).replace(/"/g,'""')+'"'+SP+(cc==null?'':cc)+SP+(cc==null?'':cc-x.req)+'\n'}
+ return s+(fr?'TOTAL GÉNÉRAL':'GRAND TOTAL')+SP.repeat(8)+summarize(e).grand+SP.repeat(6)+'\n'}
 
 // ── XLSX export (no libraries): minimal OOXML package inside a store-only ZIP ──
 const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
@@ -206,27 +218,32 @@ function zip(files,type){const enc=new TextEncoder(),parts=[],cd=[];let off=0;
  let cs=0;cd.forEach(x=>cs+=x.length);
  const end=new Uint8Array([0x50,0x4b,5,6,0,0,0,0,...u16(files.length),...u16(files.length),...u32(cs),...u32(off),0,0]);
  return new Blob([...parts,...cd,end],{type})}
-function toXlsx(e,lang){const fr=lang!='en',enc=new TextEncoder(),
- H=(fr?'Réf,Date,Heure,REQ,N1,N2,N3,N4,Total,Statut,Carte,Compte,Note':'Ref,Date,Time,REQ,N1,N2,N3,N4,Total,Status,Card,Account,Note').split(','),
- W=[12,12,11,12,8,8,8,8,10,20,22,18,46],
+const XW=[12,12,11,12,8,8,8,8,10,20,22,18,46,12,10];
+function entryRows(e,lang){const fr=lang!='en',
+ H=(fr?'Réf,Date,Heure,REQ,N1,N2,N3,N4,Total,Statut,Carte,Compte,Note,Calcul,Écart':'Ref,Date,Time,REQ,N1,N2,N3,N4,Total,Status,Card,Account,Note,Calc,Diff').split(','),
+ rows=[H.map(v=>({v,s:1}))];
+ e.forEach(x=>{const st=!fr?x.status:({VALID:'VALIDE',NO_DISPENSE:'SANS DISTRIBUTION',VERIFY:'À VÉRIFIER'})[x.status],bk=x.kind=='BANK'?2:0,c=calcOf(x);
+  rows.push([/^\d+$/.test(x.ref)?+x.ref:x.ref,fmtDate(x.date),x.time,x.req,...[0,1,2,3].map(i=>x.numbers[i]??''),x.total,st,cardCell(x,fr),x.acct,noteText(x,lang),c==null?'':c,c==null?'':c-x.req].map(v=>({v,s:bk})))});
+ rows.push([fr?'TOTAL GÉNÉRAL':'GRAND TOTAL','','','','','','','',summarize(e).grand,'','','','','',''].map(v=>({v,s:1})));
+ return rows}
+function xlsxBook(sheets){const enc=new TextEncoder(),NS='http://schemas.openxmlformats.org/spreadsheetml/2006/main',RN='http://schemas.openxmlformats.org/officeDocument/2006/relationships',PK='http://schemas.openxmlformats.org/package/2006/relationships',HD='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
  X=s=>String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]),
  cell=(r,i,v,st)=>{const a=String.fromCharCode(65+i)+r,s=st?' s="'+st+'"':'';if(v===''||v==null)return st==2?'<c r="'+a+'" s="2"/>':'';
   return typeof v=='number'?'<c r="'+a+'"'+s+'><v>'+v+'</v></c>':'<c r="'+a+'" t="inlineStr"'+s+'><is><t xml:space="preserve">'+X(v)+'</t></is></c>'},
- row=(r,cs)=>'<row r="'+r+'">'+cs.join('')+'</row>',
- rows=[row(1,H.map((h,i)=>cell(1,i,h,1)))];
- e.forEach((x,k)=>{const r=k+2,st=!fr?x.status:({VALID:'VALIDE',NO_DISPENSE:'SANS DISTRIBUTION',VERIFY:'À VÉRIFIER'})[x.status];
-  const bk=x.kind=='BANK'?2:0;rows.push(row(r,[cell(r,0,/^\d+$/.test(x.ref)?+x.ref:x.ref,bk),cell(r,1,fmtDate(x.date),bk),cell(r,2,x.time,bk),cell(r,3,x.req,bk),...[0,1,2,3].map(i=>cell(r,4+i,x.numbers[i]??'',bk)),cell(r,8,x.total,bk),cell(r,9,st,bk),cell(r,10,cardCell(x,fr),bk),cell(r,11,x.acct,bk),cell(r,12,noteText(x,lang),bk)]))});
- const r=e.length+2;rows.push(row(r,[cell(r,0,fr?'TOTAL GÉNÉRAL':'GRAND TOTAL',1),cell(r,8,summarize(e).grand,1)]));
- const NS='http://schemas.openxmlformats.org/spreadsheetml/2006/main',RN='http://schemas.openxmlformats.org/officeDocument/2006/relationships',PK='http://schemas.openxmlformats.org/package/2006/relationships',HD='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+ used=new Set(),
+ nm=n=>{const b=String(n||'Sheet').replace(/[\[\]:*?\/\\]/g,'_').trim().slice(0,28)||'Sheet';let x=b,k=2;while(used.has(x.toLowerCase()))x=b+' '+k++;used.add(x.toLowerCase());return x},
+ names=sheets.map(s=>nm(s.name)),
+ sx=s=>HD+'<worksheet xmlns="'+NS+'"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>'+s.w.map((w,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>').join('')+'</cols><sheetData>'+s.rows.map((r,k)=>'<row r="'+(k+1)+'">'+r.map((c,i)=>cell(k+1,i,c.v,c.s)).join('')+'</row>').join('')+'</sheetData></worksheet>';
  const F=[
- ['[Content_Types].xml',HD+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
+ ['[Content_Types].xml',HD+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+sheets.map((s,i)=>'<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('')+'<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
  ['_rels/.rels',HD+'<Relationships xmlns="'+PK+'"><Relationship Id="rId1" Type="'+RN+'/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
- ['xl/workbook.xml',HD+'<workbook xmlns="'+NS+'" xmlns:r="'+RN+'"><sheets><sheet name="REQ" sheetId="1" r:id="rId1"/></sheets></workbook>'],
- ['xl/_rels/workbook.xml.rels',HD+'<Relationships xmlns="'+PK+'"><Relationship Id="rId1" Type="'+RN+'/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="'+RN+'/styles" Target="styles.xml"/></Relationships>'],
+ ['xl/workbook.xml',HD+'<workbook xmlns="'+NS+'" xmlns:r="'+RN+'"><sheets>'+names.map((n,i)=>'<sheet name="'+X(n)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>').join('')+'</sheets></workbook>'],
+ ['xl/_rels/workbook.xml.rels',HD+'<Relationships xmlns="'+PK+'">'+sheets.map((s,i)=>'<Relationship Id="rId'+(i+1)+'" Type="'+RN+'/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join('')+'<Relationship Id="rId'+(sheets.length+1)+'" Type="'+RN+'/styles" Target="styles.xml"/></Relationships>'],
  ['xl/styles.xml',HD+'<styleSheet xmlns="'+NS+'"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD1FADF"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="0" fillId="2" borderId="0" xfId="0" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'],
- ['xl/worksheets/sheet1.xml',HD+'<worksheet xmlns="'+NS+'"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>'+W.map((w,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>').join('')+'</cols><sheetData>'+rows.join('')+'</sheetData></worksheet>']
+ ...sheets.map((s,i)=>['xl/worksheets/sheet'+(i+1)+'.xml',sx(s)])
  ].map(([n,s])=>[n,enc.encode(s)]);
  return zip(F,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
+function toXlsx(e,lang){return xlsxBook([{name:'REQ',rows:entryRows(e,lang),w:XW}])}
 const b64=u=>{let s='';for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(s)};
 // ── helpers / icons ──
 const P={User:["M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z","M4 21a8 8 0 0 1 16 0"],Upload:["M12 15V3","M7 8l5-5 5 5","M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"],Download:["M12 3v12","M7 10l5 5 5-5","M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"],
@@ -242,7 +259,14 @@ const ic=n=>'<svg class="i" viewBox="0 0 24 24" aria-hidden="true">'+P[n].map(d=
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
 const num=n=>n.toLocaleString('en-US'),amt=d=>d.toLocaleString('en-US',{maximumFractionDigits:2});
 let LS=null;try{LS=window.localStorage}catch(e){}
-const sget=k=>{try{return LS&&LS.getItem(k)}catch(e){return null}},sset=(k,v)=>{try{LS&&LS.setItem(k,v)}catch(e){}},sdel=k=>{try{LS&&LS.removeItem(k)}catch(e){}};
+// data of each account lives under its own prefix; preferences (language, theme, sort) stay shared
+const DK=['docs','del','folders','cur','ts','trash','den','entries'];
+let NS='';
+try{if(LS&&!LS.getItem('ns5')){LS.setItem('ns5','1');const u=LS.getItem('uid');
+  if(u){DK.forEach(k=>{const v=LS.getItem(k);if(v!=null){LS.setItem('u_'+u+'_'+k,v);LS.removeItem(k)}});LS.setItem('active',u)}}
+ const ac=LS&&LS.getItem('active');if(ac&&ac!='guest')NS='u_'+ac+'_'}catch(e){}
+const NSK=k=>DK.includes(k)?NS+k:k;
+const sget=k=>{try{return LS&&LS.getItem(NSK(k))}catch(e){return null}},sset=(k,v)=>{try{LS&&LS.setItem(NSK(k),v)}catch(e){}},sdel=k=>{try{LS&&LS.removeItem(NSK(k))}catch(e){}};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function jget(k,def){try{const v=JSON.parse(sget(k));return v==null?def:v}catch(e){return def}}
 const detect=()=>{const l=(navigator.language||'ar').slice(0,2);return D[l]?l:'ar'};
@@ -270,7 +294,7 @@ const curDoc=()=>S.docs.find(x=>x.id==S.cur);
 function saveAll(){TS=Date.now();sset('docs',JSON.stringify(S.docs));sset('folders',JSON.stringify(S.folders));sset('del',JSON.stringify(S.del));sset('ts',String(TS));push()}
 function persist(){const d=curDoc();if(d){d.entries=S.entries;d.ts=Date.now()}saveAll()}
 let tt;function toast(k,a){const el=$('#toast');el.innerHTML='<div class="toast t" role="status">'+esc(t(k,a))+'</div>';clearTimeout(tt);tt=setTimeout(()=>el.innerHTML='',2400)}
-function banner(kind,title,desc,act){const c={RUN:'var(--pr)',ERR:'var(--er)',OK:'var(--ok)'}[kind];
+function banner(kind,title,desc,act){const c={RUN:'var(--pr)',INFO:'var(--pr)',ERR:'var(--er)',OK:'var(--ok)'}[kind];
  return '<div class="ban" style="--c:'+c+'" role="'+(kind=='ERR'?'alert':'status')+'">'+(kind=='RUN'?'<div class="spin"></div>':ic(kind=='OK'?'CheckCircle':'Alert'))+'<div class="grow t"><b>'+esc(title)+'</b>'+(desc?'<span class="mu sm">'+esc(desc)+'</span>':'')+(act||'')+'</div></div>'}
 const btn=(a,label,o={})=>'<button class="btn '+(o.p?'p':'')+(o.d?'d':'')+'" data-a="'+a+'"'+(o.dis?' disabled':'')+'>'+(o.load?'<span class="spin"></span>':o.icon?ic(o.icon):'')+'<span class="t">'+esc(label)+'</span></button>';
 const copyBtn=v=>'<button class="ib" data-a="copy" data-v="'+v+'" title="'+esc(t('copy_total'))+'" aria-label="'+esc(t('copy_total'))+'">'+ic('Copy')+'</button>';
@@ -297,7 +321,7 @@ function home(){if(S.fol&&!S.folders.some(f=>f.id===S.fol))S.fol=null;const has=
  else if(S.homeInfo)h+=banner('OK',t('imported',{n:S.homeInfo.ok}),S.homeInfo.skipped.length?t('skipped',{names:S.homeInfo.skipped.join(', ')}):'');
  h+='<div class="card"><div class="row"><div class="tile">'+ic('Upload')+'</div><div class="grow t"><h2>'+esc(t('import_title'))+'</h2><div class="mu sm">'+esc(t('import_desc'))+'</div></div></div>'+
  '<div class="drop t" id="drop">'+esc(t('drop'))+btn('pick',t('choose_file'),{p:1,icon:'Upload',dis:S.busy,load:S.busy})+'</div></div>';
- if(has)h+='<section class="card">'+secHead()+
+ h+=toolsCard();if(has)h+='<section class="card">'+secHead()+
   '<label class="field" style="margin-top:14px">'+ic('Search')+'<input id="dq" type="search" value="'+esc(S.dq)+'" placeholder="'+esc(t('docs_search'))+'" aria-label="'+esc(t('docs_search'))+'"></label><div class="list" id="dlist" style="margin-top:14px"></div></section>';
  return h+'</div>'+selBar()}
 function docCard(d){const s=summarize(d.entries),dt=new Date(d.ts).toLocaleString(S.lang=='ar'?'ar-u-nu-latn':S.lang,{dateStyle:'medium',timeStyle:'short'}),id=esc(d.id),on=S.ids.has(d.id),fo=S.folders.find(f=>f.id===fid(d)),tc=fo?col(fo.color):'var(--pr)';
@@ -309,22 +333,22 @@ function dlist(){const el=$('#dlist');if(!el)return;const q=S.dq.trim(),sh=vis()
  const msg=q?'docs_none':S.fol?'folder_empty':'docs_empty';
  el.innerHTML=(fs||sh.length)?fs+sh.map(docCard).join(''):'<div class="card empty t"><p class="mu" style="margin:0">'+esc(t(msg))+'</p></div>'}
 function results(){const s=summarize(S.entries),st=(n,l,c)=>'<div><b style="color:'+c+'">'+n+'</b><span class="xs mu t">'+esc(l)+'</span></div>';
- return '<div class="res"><aside class="side"><div class="card"><div class="row"><div class="grow t"><div class="mu sm">'+esc(t('grand'))+'</div><div class="big ltr">'+num(s.grand)+'</div><div class="mu sm">'+esc(t('grand_desc'))+'</div></div>'+copyBtn(s.grand)+'</div><hr>'+
+ return '<div class="res"><aside class="side"><div class="card"><div class="row"><div class="grow t"><div class="mu sm">'+esc(t('grand'))+'</div><div class="big ltr">'+num(s.grand)+'</div><div class="mu sm">'+esc(t('grand_desc'))+'</div>'+valLine(S.entries)+'</div>'+copyBtn(s.grand)+'</div><hr>'+
  '<div class="stats">'+st(s.detected,t('detected'),'var(--tx)')+st(s.valid,t('valid'),'var(--ok)')+st(s.verify,t('verify'),s.verify?'var(--er)':'var(--mu)')+st(s.noDispense,t('no_dispense'),'var(--mu)')+'</div>'+
  '<div class="mu sm t" style="margin-top:20px">'+esc(t('csv_lang'))+'</div><div class="chips" style="margin:6px 0 14px">'+['fr','en'].map(c=>'<button class="chip '+(S.csvLang==c?'on':'')+'" data-a="csv" data-v="'+c+'">'+esc(t('lang_'+c))+'</button>').join('')+'</div>'+
- '<div class="stack" style="gap:10px">'+btn('export',S.saving?t('exporting'):t('export_csv'),{p:1,icon:'Download',dis:S.saving,load:S.saving})+btn('excel',t('open_excel'),{icon:'Table',dis:S.saving})+btn('csvx',t('csv_alt'),{icon:'Download',dis:S.saving})+'</div></div>'+
+ '<div class="stack" style="gap:10px">'+btn('export',S.saving?t('exporting'):t('export_csv'),{p:1,icon:'Download',dis:S.saving,load:S.saving})+btn('excel',t('open_excel'),{icon:'Table',dis:S.saving})+btn('csvx',t('csv_alt'),{icon:'Download',dis:S.saving})+btn('days',t('days_title'),{icon:'Table'})+btn('printr',t('print_report'),{icon:'Download'})+'</div></div>'+
  (S.saveErr?banner('ERR',t('err_save'),t('err_save_desc'),btn('export',t('try_again'))):'')+(S.excelErr?banner('ERR',t('err_excel'),t('err_excel_desc')):'')+
- (s.verify?banner('ERR',t('verify_banner',{n:s.verify}),t('verify_banner_desc')):banner('OK',t('all_ok'),t('all_ok_desc')))+'</aside>'+
+ (s.verify?banner('ERR',t('verify_banner',{n:s.verify}),t('verify_banner_desc')):banner('OK',t('all_ok'),t('all_ok_desc')))+mmBanners()+'<div class="card"><h2 class="t" style="margin:0 0 12px">'+esc(t('cass_title'))+'</h2>'+cassHtml(S.entries)+'</div>'+devCard(S.entries)+declCard(S.entries)+'</aside>'+
  '<main class="stack"><div class="tools"><label class="field">'+ic('Search')+'<input id="q" type="search" value="'+esc(S.q)+'" placeholder="'+esc(t('search'))+'" aria-label="'+esc(t('search'))+'"></label><div class="chips" id="flt"></div></div><div class="list" id="list"></div></main></div>'}
-function filters(){$('#flt').innerHTML=[[0,'f_all'],[1,'f_verify']].map(([v,k])=>'<button class="chip '+((S.onlyV?1:0)==v?'on':'')+'" data-a="flt" data-v="'+v+'">'+esc(t(k))+'</button>').join('')}
+function filters(){$('#flt').innerHTML=[[0,'f_all'],[1,'f_verify']].concat([[2,'f_mm']]).map(([v,k])=>'<button class="chip '+((S.onlyM?2:S.onlyV?1:0)==v?'on':'')+'" data-a="flt" data-v="'+v+'">'+esc(t(k))+'</button>').join('')}
 function entry(e,i){const col={VALID:'var(--ok)',VERIFY:'var(--er)',NO_DISPENSE:'var(--mu)'}[e.status],icn={VALID:'CheckCircle',VERIFY:'Alert',NO_DISPENSE:'Ban'}[e.status];
  const title=/^\d+$/.test(e.ref)?'#'+e.ref:e.ref,sub=[fmtDate(e.date),e.time,'REQ '+amt(e.req)].filter(Boolean).join(' · '),four=e.numbers.length==4;
  return '<article class="card ent" style="--c:'+col+'"><div class="row"><div class="tile">'+ic(icn)+'</div><div class="grow"><b class="ltr">'+esc(title)+'</b><div class="mu sm ltr">'+esc(sub)+'</div></div><span class="badge t">'+esc(t('st_'+e.status))+'</span>'+(e.kind=='BANK'?'<span class="badge t" style="--c:var(--ok)">'+esc(t('k_BANK'))+'</span>':'')+'</div>'+
  ((e.kind!='BANK'&&e.card)||e.acct?'<div class="mu xs ltr" style="margin-top:8px;word-break:break-all">'+esc([e.kind!='BANK'&&e.card?'CARD '+e.card:'',e.acct?'ACCT '+e.acct:''].filter(Boolean).join(' · '))+'</div>':'')+
  (four?'<div class="row" style="margin-top:14px;gap:10px"><div class="grow eq ltr">'+e.numbers.join(' + ')+' = '+num(e.total)+'</div>'+copyBtn(e.total)+'<button class="ib" data-a="edit" data-i="'+i+'" title="'+esc(t('edit'))+'" aria-label="'+esc(t('edit'))+'">'+ic('Edit')+'</button></div>':'')+
- (e.code?'<div class="sm t" style="margin-top:6px;color:'+(e.status=='VERIFY'?'var(--er)':'var(--mu)')+'">'+esc(t('n_'+e.code,{a:e.arg}))+'</div>':'')+
+ (e.code?'<div class="sm t" style="margin-top:6px;color:'+(e.status=='VERIFY'?'var(--er)':'var(--mu)')+'">'+esc(t('n_'+e.code,{a:e.arg}))+'</div>':'')+(isMM(e)?'<div class="sm t" style="margin-top:6px;color:var(--er)">'+esc(mmText(e))+'</div>':'')+
  (!four&&e.status=='VERIFY'?'<div style="margin-top:14px">'+btn('edit',t('edit'),{icon:'Edit'}).replace('data-a="edit"','data-a="edit" data-i="'+i+'"')+'</div>':'')+'</article>'}
-function list(){const q=S.q.trim(),sh=S.entries.map((e,i)=>[e,i]).filter(([e])=>(!q||e.ref.includes(q)||e.time.includes(q)||fmtDate(e.date).includes(q)||(e.card||'').includes(q)||(e.acct||'').includes(q)||String(e.total)==q)&&(!S.onlyV||e.status=='VERIFY'));
+function list(){const q=S.q.trim(),sh=S.entries.map((e,i)=>[e,i]).filter(([e])=>(!q||e.ref.includes(q)||e.time.includes(q)||fmtDate(e.date).includes(q)||(e.card||'').includes(q)||(e.acct||'').includes(q)||String(e.total)==q)&&(!S.onlyV||e.status=='VERIFY')&&(!S.onlyM||isMM(e)));
  $('#list').innerHTML=sh.length?sh.map(([e,i])=>entry(e,i)).join(''):'<div class="card empty t"><p class="mu" style="margin-top:0">'+esc(t('empty_filter'))+'</p>'+btn('clear',t('clear_filters'))+'</div>'}
 function render(){document.documentElement.lang=S.lang;document.title=t('name');
  const res=S.screen==1&&S.entries.length;
@@ -339,12 +363,11 @@ function render(){document.documentElement.lang=S.lang;document.title=t('name');
   [0,1,2,3].map(i=>'<label><span class="mu sm t">'+esc(t('note_n',{n:i+1}))+'</span><div class="field"><input class="n" inputmode="numeric" maxlength="7" placeholder="0" value="'+(e.numbers[i]??'')+'"></div></label>').join('')+
   '</div><div class="sm t" id="err" style="color:var(--er)" hidden>'+esc(t('err_edit'))+'</div><div class="mu sm t">'+esc(t('original'))+'</div><pre class="raw ltr">'+esc(e.raw)+'</pre><div class="g2">'+btn('close',t('cancel'))+btn('save',t('save'),{p:1})+'</div></div></div>';
   const f=L.querySelector('.n');f&&f.focus()}
- else if(S.sheet=='acct'&&S.user){const u=S.user;
-  L.innerHTML='<div class="ov" data-a="close"><div class="sheet" role="dialog" aria-modal="true"><h2 class="t" style="margin:0">'+esc(t('account'))+'</h2><div class="who"><div class="av ib">'+(u.photo?'<img src="'+esc(u.photo)+'" alt="" referrerpolicy="no-referrer">':esc((u.name||u.email||'?').charAt(0).toUpperCase()))+'</div><div class="grow"><b class="t">'+esc(u.name)+'</b><div class="mu sm ltr">'+esc(u.email)+'</div></div></div><div class="mu sm t">'+esc(t('acct_desc'))+'</div><div class="g2">'+btn('close',t('cancel'))+btn('logout',t('signout'),{p:1})+'</div></div></div>'}
- else if(S.sheet=='table'){const f=S.tf,H=['c_ref','c_date','c_time','REQ','N1','N2','N3','N4','c_total','c_status','CARD','ACCT','c_note'].map(k=>k[0]=='c'?t(k):k),lb=(k,id,ty,v)=>'<label><span class="mu xs t">'+esc(t(k))+'</span><div class="field"><input type="'+ty+'" id="'+id+'" value="'+esc(v)+'"></div></label>';
+ else if(S.sheet=='acct')L.innerHTML=acctSheet();
+ else if(S.sheet=='table'){const f=S.tf,H=['c_ref','c_date','c_time','REQ','N1','N2','N3','N4','c_total','c_status','CARD','ACCT','c_note','c_calc','c_diff'].map(k=>k[0]=='c'?t(k):k),lb=(k,id,ty,v)=>'<label><span class="mu xs t">'+esc(t(k))+'</span><div class="field"><input type="'+ty+'" id="'+id+'" value="'+esc(v)+'"></div></label>';
   L.innerHTML='<div class="ov full" data-a="close"><div class="sheet wide" role="dialog" aria-modal="true"><div class="row"><div class="grow t"><h2 style="margin:0">'+esc(t('tbl_title'))+'</h2><div class="mu sm">'+esc(t('tbl_hint'))+'</div></div><button class="ib" data-a="close" aria-label="'+esc(t('done'))+'">'+ic('Back')+'</button></div>'+
   '<div class="chips" id="tchips"></div><div class="tf">'+lb('t_from','tfrom','time',f.from)+lb('t_to','tto','time',f.to)+lb('t_day','tday','date',f.day)+'<button class="chip" data-a="tclr">'+esc(t('t_clear'))+'</button></div><div class="sm t" id="tsum"></div>'+
-  '<div class="tw"><table class="tb"><thead><tr>'+H.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody id="tbody"></tbody><tfoot><tr><td colspan="13" id="tfoot" style="text-align:start"></td></tr></tfoot></table></div><div class="g2">'+btn('close',t('done'))+btn('export',S.saving?t('exporting'):t('export_csv'),{p:1,icon:'Download',dis:S.saving,load:S.saving})+'</div></div></div>';
+  '<div class="tw"><table class="tb"><thead><tr>'+H.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody id="tbody"></tbody><tfoot><tr><td colspan="15" id="tfoot" style="text-align:start"></td></tr></tfoot></table></div><div class="g2">'+btn('close',t('done'))+btn('export',S.saving?t('exporting'):t('export_csv'),{p:1,icon:'Download',dis:S.saving,load:S.saving})+'</div></div></div>';
   tblUpdate()}
  else if(S.sheet=='fedit'&&S.fe){const fe=S.fe;
   L.innerHTML='<div class="ov" data-a="close"><div class="sheet" role="dialog" aria-modal="true"><h2 class="t" style="margin:0">'+esc(t(fe.id?'fedit_title':'fnew_title'))+'</h2><label><span class="mu sm t">'+esc(t('fname'))+'</span><div class="field"><input id="fn" maxlength="40" value="'+esc(fe.name)+'" placeholder="'+esc(t('fname_ph'))+'"></div></label><div class="mu sm t">'+esc(t('fcolor'))+'</div><div class="sw">'+
@@ -357,11 +380,11 @@ function render(){document.documentElement.lang=S.lang;document.title=t('name');
   L.innerHTML='<div class="ov" data-a="close"><div class="sheet" role="dialog" aria-modal="true"><h2 class="t" style="margin:0">'+esc(t('bdel_title',{n}))+'</h2><div class="mu sm t">'+esc(t('bdel_desc'))+'</div><div class="g2">'+btn('close',t('cancel'))+btn('confirmbdel',t('del'),{d:1,icon:'Trash'})+'</div></div></div>'}
  else if(S.sheet=='fdel'){const f=S.folders.find(x=>x.id==S.delId);
   L.innerHTML=f?'<div class="ov" data-a="close"><div class="sheet" role="dialog" aria-modal="true"><h2 class="t" style="margin:0">'+esc(t('fdel_title'))+'</h2><div class="mu sm t">'+esc(t('fdel_desc',{n:f.name}))+'</div><div class="g2">'+btn('close',t('cancel'))+btn('confirmfdel',t('del'),{d:1,icon:'Trash'})+'</div></div></div>':''}
- else L.innerHTML=''}
+ else if(SH3[S.sheet])L.innerHTML=SH3[S.sheet]();else L.innerHTML='';after3()}
 // ── table view filters ──
 const KIND=x=>x.kind=='BANK'?'BANK':'NORMAL';
-function trow(x){const bank=x.kind=='BANK',cl=[bank?'b':'',x.status=='VERIFY'?'v':x.status=='NO_DISPENSE'?'n':''].join(' ').trim();
- return '<tr'+(cl?' class="'+cl+'"':'')+'><td>'+esc(x.ref)+'</td><td>'+esc(fmtDate(x.date))+'</td><td>'+esc(x.time)+'</td><td>'+amt(x.req)+'</td>'+[0,1,2,3].map(i=>'<td>'+(x.numbers[i]??'')+'</td>').join('')+'<td>'+(x.numbers.length==4?num(x.total):'')+'</td><td>'+esc(t('st_'+x.status))+'</td><td>'+esc(bank?t('k_BANK'):(x.card||''))+'</td><td>'+esc(x.acct||'')+'</td><td>'+esc(x.code?t('n_'+x.code,{a:x.arg}):'')+'</td></tr>'}
+function trow(x){const bank=x.kind=='BANK',mm=isMM(x),c=calcOf(x),cl=[bank?'b':'',x.status=='VERIFY'?'v':x.status=='NO_DISPENSE'?'n':'',mm?'m':''].join(' ').trim();
+ return '<tr'+(cl?' class="'+cl+'"':'')+'><td>'+esc(x.ref)+'</td><td>'+esc(fmtDate(x.date))+'</td><td>'+esc(x.time)+'</td><td>'+amt(x.req)+'</td>'+[0,1,2,3].map(i=>'<td>'+(x.numbers[i]??'')+'</td>').join('')+'<td>'+(x.numbers.length==4?num(x.total):'')+'</td><td>'+esc(t('st_'+x.status))+'</td><td>'+esc(bank?t('k_BANK'):(x.card||''))+'</td><td>'+esc(x.acct||'')+'</td><td>'+esc(noteOf(x))+'</td><td>'+(c==null?'':num(c))+'</td><td>'+(c==null?'':amt(c-x.req))+'</td></tr>'}
 function tblUpdate(){const f=S.tf,base=S.entries.filter(x=>{
   if(f.day&&x.date!==f.day)return false;
   if(f.from||f.to){if(!x.time)return false;const m=x.time.slice(0,5),a=f.from||'00:00',b=f.to||'23:59';if(a<=b?(m<a||m>b):(m<a&&m>b))return false}
@@ -378,9 +401,9 @@ function sorter(){const dir=S.sortDir=='asc'?1:-1,al=(a,b)=>a.name.localeCompare
 // ── folders & multi-select ──
 function moveSel(to){const n=S.ids.size,now=Date.now();S.docs.forEach(d=>{if(S.ids.has(d.id)){d.folder=to||null;d.ts=now}});
  S.ids.clear();S.sel=false;S.sheet=null;S.fe=null;saveAll();render();toast('moved',{n})}
-function delSel(){const ids=[...S.ids],now=Date.now();S.docs=S.docs.filter(d=>!S.ids.has(d.id));ids.forEach(i=>S.del[i]=now);
+function delSel(){const ids=[...S.ids],now=Date.now();trashAdd(S.docs.filter(d=>S.ids.has(d.id)));S.docs=S.docs.filter(d=>!S.ids.has(d.id));ids.forEach(i=>S.del[i]=now);
  if(ids.includes(S.cur)){S.cur=null;S.entries=[];sdel('cur')}
- S.ids.clear();S.sel=false;S.sheet=null;saveAll();render();toast('deleted_n',{n:ids.length})}
+ S.ids.clear();S.sel=false;S.sheet=null;saveAll();render();toastUndo('deleted_n',{n:ids.length})}
 function fsave(){const i=$('#fn'),name=(i?i.value:'').trim().slice(0,40);if(!name){$('#err').hidden=false;return}
  const fe=S.fe;let id=fe.id;
  if(id){const f=S.folders.find(x=>x.id==id);if(f){f.name=name;f.color=fe.color;f.ts=Date.now()}}
@@ -411,6 +434,7 @@ function act2(a,el){const d=el.dataset;
  if(a=='mv'){moveSel(d.v||null);return 1}
  if(a=='bdel'){S.sheet='bdel';render();return 1}
  if(a=='confirmbdel'){delSel();return 1}
+ if(act3(a,el))return 1
  return 0}
 // long-press on a document starts selection
 let lp,lpF=false;
@@ -426,7 +450,7 @@ async function readFiles(files){files=[...files];if(!files.length)return;
  S.busy=true;S.homeErr=null;S.homeInfo=null;S.screen=0;render();
  let ok=0,last=null,skipped=[],failed=0;
  for(const f of files){
-  try{const b=new Uint8Array(await f.arrayBuffer());let s='';for(let i=0;i<b.length;i+=32768)s+=String.fromCharCode.apply(null,b.subarray(i,i+32768));
+  try{const b=new Uint8Array(await f.arrayBuffer()),s=decodeText(b);
    const p=parse(s);
    if(!p.length){skipped.push(f.name);continue}
    const d={id:uid(),name:uniqName(f.name),ts:Date.now(),entries:p,folder:S.fol||null};S.docs.push(d);ok++;last=d}
@@ -437,10 +461,10 @@ async function readFiles(files){files=[...files];if(!files.length)return;
  if(files.length==1){openDoc(last.id);return}
  S.homeInfo={ok,skipped};render()}
 function openDoc(id){const d=S.docs.find(x=>x.id==id);if(!d)return;
- S.cur=id;sset('cur',id);S.entries=d.entries;S.q='';S.onlyV=false;S.saveErr=false;S.excelErr=false;S.homeErr=null;S.homeInfo=null;go(1)}
-function delDoc(){const id=S.delId;S.docs=S.docs.filter(d=>d.id!=id);S.del[id]=Date.now();S.ids.delete(id);
+ S.cur=id;sset('cur',id);S.entries=d.entries;S.q='';S.onlyV=false;S.onlyM=false;S.saveErr=false;S.excelErr=false;S.homeErr=null;S.homeInfo=null;go(1)}
+function delDoc(){const id=S.delId;trashAdd(S.docs.filter(d=>d.id==id));S.docs=S.docs.filter(d=>d.id!=id);S.del[id]=Date.now();S.ids.delete(id);
  if(S.cur==id){S.cur=null;S.entries=[];sdel('cur')}
- S.sheet=null;S.delId=null;saveAll();render();toast('deleted')}
+ S.sheet=null;S.delId=null;saveAll();render();toastUndo('deleted')}
 function go(n){S.screen=n;if(n==1){if(location.hash!='#results')location.hash='results'}else if(location.hash)history.replaceState(null,'',location.pathname+location.search);render();window.scrollTo(0,0)}
 async function save(open,fmt){S.saving=true;S.saveErr=false;S.excelErr=false;render();
  const cd=curDoc(),base=(cd?cd.name.replace(/\.[^.]*$/,''):'REQ_report').replace(/[\\/:*?"<>|]/g,'_')||'REQ_report',xl=fmt!='csv';let ok=false;
@@ -461,12 +485,12 @@ document.addEventListener('click',ev=>{const el=ev.target.closest('[data-a]');if
  else if(a=='deldoc'){S.delId=el.dataset.id;S.sheet='del';render()}else if(a=='confirmdel')delDoc()
  else if(a=='setlang'){S.lang=el.dataset.v;sset('lang',S.lang);S.sheet=null;render()}
  else if(a=='close'){S.sheet=null;render()}else if(a=='csv'){S.csvLang=el.dataset.v;render()}
- else if(a=='flt'){S.onlyV=el.dataset.v=='1';filters();list()}else if(a=='clear'){S.q='';S.onlyV=false;render()}
+ else if(a=='flt'){S.onlyV=el.dataset.v=='1';S.onlyM=el.dataset.v=='2';filters();list()}else if(a=='clear'){S.q='';S.onlyV=false;S.onlyM=false;render()}
  else if(a=='edit'){S.idx=+el.dataset.i;S.sheet='edit';render()}else if(a=='save')saveEdit();
  else if(a=='excel'){S.tf={kind:'all',from:'',to:'',day:''};S.sheet='table';render()}else if(a=='export')save(false);else if(a=='csvx')save(false,'csv');else if(a=='copy')copy(el.dataset.v,el)
  else if(a=='login')login();else if(a=='acct'){S.sheet='acct';render()}else if(a=='logout')logout()});
 document.addEventListener('input',ev=>{const el=ev.target;
- if(el.id=='q'){S.q=el.value;list()}else if(el.id=='dq'){S.dq=el.value;dlist()}
+ if(DF[el.id]){S.df[DF[el.id]]=el.value;daysUpdate()}else if(el.id=='q'){S.q=el.value;list()}else if(el.id=='dq'){S.dq=el.value;dlist()}
  else if(el.id=='tfrom'||el.id=='tto'||el.id=='tday'){S.tf[{tfrom:'from',tto:'to',tday:'day'}[el.id]]=el.value;tblUpdate()}
  else if(el.classList.contains('n')){el.value=el.value.replace(/\D/g,'').slice(0,7);const e=$('#err');e&&(e.hidden=true)}});
 document.addEventListener('keydown',ev=>{if(ev.key=='Escape'&&S.sheet){S.sheet=null;render()}
@@ -479,6 +503,138 @@ $('#file').addEventListener('change',e=>{const fs=[...e.target.files];e.target.v
 document.addEventListener('drop',e=>{if(S.screen==0&&$('#drop')){e.preventDefault();const fs=e.dataTransfer.files;if(fs&&fs.length)readFiles(fs)}});
 window.addEventListener('hashchange',()=>{const n=location.hash=='#results'&&S.entries.length?1:0;if(n!=S.screen){S.screen=n;render()}});
 if(location.hash=='#results'&&S.entries.length)S.screen=1;
+// ── v4: reconciliation, cassettes, daily report, folder stats, protection, print ──
+Object.assign(D.ar,{den_title:"قيم الفئات",den_desc:"اكتب قيمة الورقة في كل كاسيت ليحسب التطبيق المبلغ الفعلي ويقارنه بـ REQ.",den_err:"أدخل أربع قيم أكبر من صفر، أو اتركها كلها فارغة.",den_saved:"تم حفظ الفئات",den_unset_t:"قيم الفئات غير محددة",den_unset:"حدّدها مرة واحدة لتفعيل مطابقة المبلغ مع الأوراق.",den_val:"الفئة",value:"القيمة",pieces:"الأوراق",mm:"فروقات",mm_banner:"{n} عملية مبلغها لا يطابق الأوراق",mm_ok:"المبلغ يطابق الأوراق في كل العمليات",f_mm:"فروقات المبلغ",n_MM:"المبلغ المحسوب {c} يختلف عن REQ {r} (الفرق {d}).",cass_title:"جرد الكاسيتات",tools_title:"أدوات",fs_btn:"إحصاءات",fs_all:"كل المستندات",c_doc:"المستند",c_calc:"المحسوب",c_diff:"الفرق",days_title:"التقرير اليومي",h_from:"من الساعة",h_to:"إلى الساعة",print_report:"تقرير للطباعة / PDF",rep_susp:"العمليات المشبوهة",backup_export:"نسخة احتياطية",backup_import:"استعادة نسخة",backup_ok:"تمت استعادة {n} مستند",backup_err:"ملف النسخة غير صالح",trash_title:"سلة المحذوفات",trash_desc:"تبقى المستندات المحذوفة 14 يومًا على هذا الجهاز فقط.",trash_empty:"السلة فارغة.",trash_clear:"إفراغ السلة",restore:"استعادة",restored:"تمت استعادة {n} مستند",undo:"تراجع",dups_title:"العمليات المكررة",dups_none:"لا توجد عمليات مكررة بين الملفات.",dup_n:"{n} عملية موجودة في أكثر من ملف.",dup_in:"موجودة في:",export_all:"تصدير xlsx (ورقة لكل مستند)"});
+Object.assign(D.en,{den_title:"Note values",den_desc:"Enter the value of the note in each cassette so the app can compute the real amount and compare it with REQ.",den_err:"Enter four values above zero, or leave all empty.",den_saved:"Values saved",den_unset_t:"Note values not set",den_unset:"Set them once to turn on amount-vs-notes matching.",den_val:"Note",value:"Value",pieces:"Notes",mm:"Mismatches",mm_banner:"{n} with amount ≠ notes",mm_ok:"Amount matches notes everywhere",f_mm:"Amount mismatch",n_MM:"Computed amount {c} differs from REQ {r} (difference {d}).",cass_title:"Cassette count",tools_title:"Tools",fs_btn:"Statistics",fs_all:"All documents",c_doc:"Document",c_calc:"Computed",c_diff:"Diff",days_title:"Daily report",h_from:"From hour",h_to:"To hour",print_report:"Print / PDF report",rep_susp:"Suspicious operations",backup_export:"Backup",backup_import:"Restore backup",backup_ok:"{n} document(s) restored",backup_err:"Invalid backup file",trash_title:"Trash",trash_desc:"Deleted documents stay for 14 days on this device only.",trash_empty:"Trash is empty.",trash_clear:"Empty trash",restore:"Restore",restored:"{n} document(s) restored",undo:"Undo",dups_title:"Duplicates",dups_none:"No duplicate operations across files.",dup_n:"{n} operation(s) found in several files.",dup_in:"Found in:",export_all:"Export xlsx (one sheet per document)"});
+Object.assign(D.fr,{den_title:"Valeur des coupures",den_desc:"Saisissez la valeur du billet de chaque cassette pour comparer le montant réel à REQ.",den_err:"Saisissez quatre valeurs positives, ou laissez tout vide.",den_saved:"Valeurs enregistrées",den_unset_t:"Valeurs non définies",den_unset:"Définissez-les une fois pour activer le rapprochement montant/billets.",den_val:"Coupure",value:"Valeur",pieces:"Billets",mm:"Écarts",mm_banner:"{n} dont le montant ≠ billets",mm_ok:"Montant cohérent avec les billets partout",f_mm:"Écarts de montant",n_MM:"Montant calculé {c} différent de REQ {r} (écart {d}).",cass_title:"Inventaire des cassettes",tools_title:"Outils",fs_btn:"Statistiques",fs_all:"Tous les documents",c_doc:"Document",c_calc:"Calculé",c_diff:"Écart",days_title:"Rapport quotidien",h_from:"De l'heure",h_to:"À l'heure",print_report:"Rapport à imprimer / PDF",rep_susp:"Opérations suspectes",backup_export:"Sauvegarde",backup_import:"Restaurer",backup_ok:"{n} document(s) restauré(s)",backup_err:"Fichier de sauvegarde invalide",trash_title:"Corbeille",trash_desc:"Les documents supprimés restent 14 jours sur cet appareil uniquement.",trash_empty:"La corbeille est vide.",trash_clear:"Vider la corbeille",restore:"Restaurer",restored:"{n} document(s) restauré(s)",undo:"Annuler",dups_title:"Doublons",dups_none:"Aucun doublon entre les fichiers.",dup_n:"{n} opération(s) présente(s) dans plusieurs fichiers.",dup_in:"Présente dans :",export_all:"Exporter xlsx (une feuille par document)"});
+S.den=(a=>Array.isArray(a)&&a.length==4?a.map(n=>+n||0):[0,0,0,0])(jget('den',null));
+S.trash=(a=>Array.isArray(a)?a.filter(x=>x&&x.d&&x.d.id):[])(jget('trash',[]));
+S.onlyM=false;S.df={from:'',to:'',hf:'',ht:''};S.fs=[];S.fsTitle='';S.lastDel=0;
+const dset=()=>S.den.every(v=>v>0);
+const denOf=x=>x.den&&x.den.length==4&&x.den.every(v=>v>0)?x.den:(dset()?S.den:null);
+const calcOf=x=>{const d=denOf(x);return d&&x.numbers.length==4?x.numbers.reduce((s,n,i)=>s+n*d[i],0):null};
+const hasD=e=>e.some(x=>denOf(x));
+const cassVals=e=>{const v=[0,0,0,0];e.forEach(x=>{const d=denOf(x);if(d&&x.status=='VALID'&&x.numbers.length==4)x.numbers.forEach((n,i)=>v[i]+=n*d[i])});return v};
+const denShow=e=>{for(let i=e.length-1;i>=0;i--){const d=denOf(e[i]);if(d)return d}return null};
+const curOf=e=>(e.find(x=>x.cur)||{}).cur||'';
+const isAM=x=>{if(x.status!='VALID')return false;const c=calcOf(x);return c!=null&&Math.abs(c-x.req)>0.005};
+const isMM=x=>isAM(x)||!!x.cm;
+const sum2=e=>({...summarize(e),mm:e.filter(isMM).length});
+const cassTot=e=>{const c=[0,0,0,0];e.forEach(x=>{if(x.status=='VALID'&&x.numbers.length==4)x.numbers.forEach((n,i)=>c[i]+=n)});return c};
+const mmText=x=>[isAM(x)?(()=>{const c=calcOf(x),d=c-x.req;return t('n_MM',{c:num(c),r:amt(x.req),d:(d>0?'+':'')+amt(d)})})():'',x.cm?t('n_CM',{a:(x.cmd||[]).join(' / ')}):''].filter(Boolean).join(' ');
+const noteOf=x=>[x.code?t('n_'+x.code,{a:x.arg}):'',isMM(x)?mmText(x):''].filter(Boolean).join(' · ');
+const rname=()=>{const c=curDoc();return c?c.name:t('name')};
+const OV=(inner,full)=>'<div class="ov'+(full?' full':'')+'" data-a="close"><div class="sheet'+(full?' wide':'')+'" role="dialog" aria-modal="true">'+inner+'</div></div>';
+const lbl=(k,id,ty,v)=>'<label><span class="mu xs t">'+esc(t(k))+'</span><div class="field"><input type="'+ty+'" id="'+id+'" value="'+esc(v)+'"></div></label>';
+const H2=k=>'<h2 class="t" style="margin:6px 0 0;font-size:15px">'+esc(t(k))+'</h2>';
+// text decoding: UTF-8 → UTF-16 BOM → Windows-1252 fallback (was plain Latin-1)
+function decodeText(b){
+ if(b[0]==0xFF&&b[1]==0xFE)return new TextDecoder('utf-16le').decode(b);
+ if(b[0]==0xFE&&b[1]==0xFF)return new TextDecoder('utf-16be').decode(b);
+ try{return new TextDecoder('utf-8',{fatal:true}).decode(b)}catch(e){}
+ try{return new TextDecoder('windows-1252').decode(b)}catch(e){}
+ let s='';for(let i=0;i<b.length;i+=32768)s+=String.fromCharCode.apply(null,b.subarray(i,i+32768));return s}
+// cassette table
+function cassHtml(e){const c=cassTot(e),v=cassVals(e),d=denShow(e),set=!!d,th=k=>'<th>'+esc(t(k))+'</th>';
+ return '<div class="tw sm0"><table class="tb"><thead><tr><th></th>'+(set?th('den_val'):'')+th('pieces')+(set?th('value'):'')+'</tr></thead><tbody>'+c.map((n,i)=>'<tr><td>'+esc(t('note_n',{n:i+1}))+'</td>'+(set?'<td>'+num(d[i])+'</td>':'')+'<td>'+num(n)+'</td>'+(set?'<td>'+num(v[i])+'</td>':'')+'</tr>').join('')+'</tbody><tfoot><tr><td>'+esc(t('tot'))+'</td>'+(set?'<td></td>':'')+'<td>'+num(sum(c))+'</td>'+(set?'<td>'+num(sum(v))+'</td>':'')+'</tr></tfoot></table></div>'}
+function mmBanners(){if(!hasD(S.entries))return banner('INFO',t('den_unset_t'),t('den_unset'),btn('den',t('den_title')));
+ const n=S.entries.filter(isMM).length;return n?banner('ERR',t('mm_banner',{n}),'',btn('mmf',t('f_mm'))):banner('OK',t('mm_ok'))}
+// daily aggregation
+function dayFilter(e){const f=S.df;return e.filter(x=>{if(f.from&&(!x.date||x.date<f.from))return false;if(f.to&&(!x.date||x.date>f.to))return false;
+ if(f.hf||f.ht){if(!x.time)return false;const m=x.time.slice(0,5),a=f.hf||'00:00',b=f.ht||'23:59';if(a<=b?(m<a||m>b):(m<a&&m>b))return false}return true})}
+function dayAgg(e){const m={};e.forEach(x=>{const k=x.date||'',o=m[k]||(m[k]={d:k,n:0,v:0,vf:0,mm:0,g:0,c:[0,0,0,0],val:0,hv:0});o.n++;
+ if(x.status=='VALID'){o.v++;o.g+=x.total;const q=calcOf(x);if(q!=null){o.val+=q;o.hv=1}if(x.numbers.length==4)x.numbers.forEach((z,i)=>o.c[i]+=z)}else if(x.status=='VERIFY')o.vf++;if(isMM(x))o.mm++});
+ return Object.values(m).sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:0)}
+function dayTbl(rows){const set=rows.some(o=>o.hv),H=[t('c_date'),t('detected'),t('valid'),t('verify'),t('mm'),'N1','N2','N3','N4',t('c_total')].concat(set?[t('value')]:[]),
+ T=rows.reduce((a,o)=>({n:a.n+o.n,v:a.v+o.v,vf:a.vf+o.vf,mm:a.mm+o.mm,g:a.g+o.g,c:a.c.map((x,i)=>x+o.c[i]),val:a.val+o.val}),{n:0,v:0,vf:0,mm:0,g:0,c:[0,0,0,0],val:0}),
+ r=(l,o)=>'<td>'+l+'</td><td>'+o.n+'</td><td>'+o.v+'</td><td>'+o.vf+'</td><td>'+o.mm+'</td>'+o.c.map(n=>'<td>'+num(n)+'</td>').join('')+'<td>'+num(o.g)+'</td>'+(set?'<td>'+num(o.val)+'</td>':'');
+ return '<div class="tw sm0"><table class="tb"><thead><tr>'+H.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(o=>'<tr>'+r(esc(o.d?fmtDate(o.d):'—'),o)+'</tr>').join('')+'</tbody><tfoot><tr>'+r(esc(t('tot')),T)+'</tr></tfoot></table></div>'}
+function daysSheet(){const f=S.df;
+ return OV('<div class="row"><div class="grow t"><h2 style="margin:0">'+esc(t('days_title'))+'</h2><div class="mu sm" id="dsum"></div></div><button class="ib" data-a="close" aria-label="'+esc(t('done'))+'">'+ic('Back')+'</button></div><div class="tf">'+lbl('t_from','dfrom','date',f.from)+lbl('t_to','dto','date',f.to)+lbl('h_from','dhf','time',f.hf)+lbl('h_to','dht','time',f.ht)+'<button class="chip" data-a="dclr">'+esc(t('t_clear'))+'</button></div><div id="dtbl"></div><div class="g2">'+btn('close',t('done'))+btn('printd',t('print_report'),{p:1,icon:'Download'})+'</div>',1)}
+function daysUpdate(){const e=dayFilter(S.entries);$('#dtbl').innerHTML=dayTbl(dayAgg(e));$('#dsum').textContent=t('last_desc',{n:e.length,t:num(sum2(e).grand)})}
+// folder / multi-document statistics
+const fsDocs=()=>S.fs.map(id=>S.docs.find(d=>d.id==id)).filter(Boolean);
+function fsSheet(){const ds=fsDocs(),e=ds.flatMap(d=>d.entries),s=sum2(e),set=hasD(e),
+ st=(n,l,c)=>'<div><b style="color:'+c+'">'+n+'</b><span class="xs mu t">'+esc(l)+'</span></div>',
+ heads=[t('c_doc'),t('detected'),t('valid'),t('verify'),t('mm'),t('c_total')].concat(set?[t('value')]:[]),
+ rows=ds.map(d=>{const q=sum2(d.entries);return '<tr><td style="text-align:start">'+esc(d.name)+'</td><td>'+q.detected+'</td><td>'+q.valid+'</td><td>'+q.verify+'</td><td>'+q.mm+'</td><td>'+num(q.grand)+'</td>'+(set?'<td>'+num(sum(cassVals(d.entries)))+'</td>':'')+'</tr>'}).join('');
+ return OV('<div class="row"><div class="grow t"><h2 style="margin:0">'+esc(S.fsTitle)+'</h2><div class="mu sm">'+esc(t('f_count',{n:ds.length})+' · '+t('last_desc',{n:s.detected,t:num(s.grand)}))+'</div></div><button class="ib" data-a="close" aria-label="'+esc(t('done'))+'">'+ic('Back')+'</button></div>'+
+ '<div class="stats">'+st(s.detected,t('detected'),'var(--tx)')+st(s.valid,t('valid'),'var(--ok)')+st(s.verify,t('verify'),s.verify?'var(--er)':'var(--mu)')+st(s.mm,t('mm'),s.mm?'var(--er)':'var(--mu)')+'</div>'+
+ H2('cass_title')+cassHtml(e)+H2('days_title')+dayTbl(dayAgg(e))+H2('c_doc')+'<div class="tw sm0"><table class="tb"><thead><tr>'+heads.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table></div>'+
+ '<div class="g2">'+btn('fsx',t('export_all'),{p:1,icon:'Download'})+btn('printf',t('print_report'),{icon:'Download'})+'</div>'+btn('close',t('done')),1)}
+async function deliver(blob,name,open){try{if(window.Android&&Android.saveFile){const r=Android.saveFile(name,blob.type.split(';')[0],b64(new Uint8Array(await blob.arrayBuffer())),!!open);return r!='err'}
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();return true}catch(e){return false}}
+async function saveFs(){const ds=fsDocs();if(!ds.length)return;const lang=S.csvLang,fr=lang!='en',set=ds.some(d=>hasD(d.entries)),
+ H=(fr?['Document','Opérations','Valides','À vérifier','Écarts','Billets','Valeur']:['Document','Operations','Valid','To check','Mismatches','Notes','Value']),
+ rows=[H.map(v=>({v,s:1}))];let T=[0,0,0,0,0,0];
+ ds.forEach(d=>{const q=sum2(d.entries),v=set?sum(cassVals(d.entries)):'';rows.push([d.name,q.detected,q.valid,q.verify,q.mm,q.grand,v].map(v=>({v,s:0})));T=[T[0]+q.detected,T[1]+q.valid,T[2]+q.verify,T[3]+q.mm,T[4]+q.grand,T[5]+(v||0)]});
+ rows.push([fr?'TOTAL GÉNÉRAL':'GRAND TOTAL',...T.slice(0,5),set?T[5]:''].map(v=>({v,s:1})));
+ const sheets=[{name:fr?'Résumé':'Summary',rows,w:[40,12,12,12,12,12,14]},...ds.map(d=>({name:d.name.replace(/\.[^.]*$/,''),rows:entryRows(d.entries,lang),w:XW}))],
+ ok=await deliver(xlsxBook(sheets),(S.fsTitle||'REQ').replace(/[\\/:*?"<>|]/g,'_')+'.xlsx');toast(ok?'saved':'err_save')}
+// print / PDF report
+function printReport(title,e){const s=sum2(e),set=hasD(e),susp=e.filter(x=>x.status=='VERIFY'||isMM(x)),
+ sr=[[t('detected'),s.detected],[t('valid'),s.valid],[t('verify'),s.verify],[t('no_dispense'),s.noDispense],[t('mm'),s.mm],[t('grand'),num(s.grand)]].concat(set?[[t('value'),num(sum(cassVals(e)))]]:[]);
+ const sus=susp.length?'<div class="tw sm0"><table class="tb"><thead><tr>'+[t('c_ref'),t('c_date'),t('c_time'),'REQ','N1','N2','N3','N4',t('c_total'),t('c_calc'),t('c_note')].map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+susp.map(x=>{const c=calcOf(x);return '<tr><td>'+esc(x.ref)+'</td><td>'+esc(fmtDate(x.date))+'</td><td>'+esc(x.time)+'</td><td>'+amt(x.req)+'</td>'+[0,1,2,3].map(i=>'<td>'+(x.numbers[i]??'')+'</td>').join('')+'<td>'+(x.numbers.length==4?num(x.total):'')+'</td><td>'+(c==null?'':num(c))+'</td><td>'+esc(noteOf(x))+'</td></tr>'}).join('')+'</tbody></table></div>':'<p>'+esc(t('all_ok'))+'</p>';
+ const P=$('#prt');P.dir=S.lang=='ar'?'rtl':'ltr';
+ P.innerHTML='<h1>'+esc(title)+'</h1><div class="pm">'+esc(new Date().toLocaleString(S.lang=='ar'?'ar-u-nu-latn':S.lang))+'</div><div class="tw sm0" style="margin-top:12px"><table class="tb"><tbody>'+sr.map(([k,v])=>'<tr><td style="text-align:start">'+esc(k)+'</td><td>'+esc(v)+'</td></tr>').join('')+'</tbody></table></div>'+H2('cass_title')+cassHtml(e)+H2('days_title')+dayTbl(dayAgg(e))+'<h2 class="t" style="margin:16px 0 6px;font-size:15px">'+esc(t('rep_susp')+' ('+susp.length+')')+'</h2>'+sus;
+ setTimeout(()=>window.print(),80)}
+// trash / undo / backup / duplicates
+function trashAdd(docs){const now=Date.now();docs.forEach(d=>S.trash.unshift({d,at:now}));S.trash=S.trash.filter(x=>now-x.at<14*864e5).slice(0,30);S.lastDel=now;sset('trash',JSON.stringify(S.trash))}
+function restoreTrash(by){const its=S.trash.filter(x=>by.id?x.d.id==by.id:x.at==by.at);let n=0;
+ its.forEach(x=>{if(S.docs.some(d=>d.id==x.d.id))return;const d={...x.d,ts:Date.now()+1};delete S.del[d.id];S.docs.push(d);n++});
+ S.trash=S.trash.filter(x=>!its.includes(x));sset('trash',JSON.stringify(S.trash));S.sheet=S.sheet=='trash'?'trash':null;saveAll();render();toast('restored',{n})}
+function toastUndo(k,a){const el=$('#toast');el.innerHTML='<div class="toast t" role="status">'+esc(t(k,a))+'<button class="chip on" data-a="undo" style="margin-inline-start:12px;min-height:30px">'+esc(t('undo'))+'</button></div>';clearTimeout(tt);tt=setTimeout(()=>el.innerHTML='',7000)}
+function trashSheet(){const dt=at=>new Date(at).toLocaleString(S.lang=='ar'?'ar-u-nu-latn':S.lang,{dateStyle:'medium',timeStyle:'short'});
+ return OV('<h2 class="t" style="margin:0">'+esc(t('trash_title'))+'</h2><div class="mu sm t">'+esc(t('trash_desc'))+'</div>'+(S.trash.length?S.trash.map(x=>'<div class="card ent" style="padding:12px"><div class="row"><div class="grow"><div class="dn">'+esc(x.d.name)+'</div><div class="mu xs">'+esc(dt(x.at))+'</div></div><button class="chip on" data-a="restore" data-id="'+esc(x.d.id)+'">'+esc(t('restore'))+'</button></div></div>').join(''):'<div class="mu t">'+esc(t('trash_empty'))+'</div>')+'<div class="g2">'+btn('close',t('done'))+btn('emptytrash',t('trash_clear'),{d:1,icon:'Trash',dis:!S.trash.length})+'</div>')}
+function backup(){const j=JSON.stringify({app:'req',v:3,docs:S.docs,folders:S.folders,del:S.del,den:S.den});
+ deliver(new Blob([j],{type:'application/json'}),'req-backup-'+new Date().toISOString().slice(0,10)+'.json').then(ok=>toast(ok?'saved':'err_save'))}
+$('#bfile').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+ try{const txt=await f.text(),raw=JSON.parse(txt),p=unpack(txt);if(!p.docs.length&&!p.folders.length)throw 0;let n=0;
+  p.docs.forEach(d=>{const c=S.docs.find(x=>x.id==d.id);if(c&&c.ts>=d.ts)return;if(S.del[d.id]){d.ts=Math.max(d.ts,S.del[d.id]+1);delete S.del[d.id]}S.docs=S.docs.filter(x=>x.id!=d.id);S.docs.push(d);n++});
+  p.folders.forEach(x=>{if(!S.folders.some(y=>y.id==x.id)){delete S.del[x.id];S.folders.push(x)}});
+  if(!Array.isArray(raw)&&Array.isArray(raw.den)&&raw.den.length==4&&!dset()){S.den=raw.den.map(v=>+v||0);sset('den',JSON.stringify(S.den))}
+  saveAll();render();toast('backup_ok',{n})}catch(err){toast('backup_err')}});
+function findDups(){const m=new Map();S.docs.forEach(d=>d.entries.forEach(x=>{if(!/^\d+$/.test(x.ref)||!(x.date||x.time))return;const k=[x.ref,x.date,x.time,x.req,x.numbers.join('-')].join('|');let a=m.get(k);if(!a)m.set(k,a=[]);if(!a.some(y=>y.d.id==d.id))a.push({d,x})}));return [...m.values()].filter(a=>a.length>1)}
+function dupsSheet(){const g=findDups();
+ return OV('<h2 class="t" style="margin:0">'+esc(t('dups_title'))+'</h2><div class="mu sm t">'+esc(g.length?t('dup_n',{n:g.length}):t('dups_none'))+'</div>'+g.slice(0,100).map(a=>{const x=a[0].x;return '<div class="card ent t" style="--c:var(--er);padding:12px"><div class="row"><b class="ltr">#'+esc(x.ref)+'</b><span class="mu sm ltr grow">'+esc([fmtDate(x.date),x.time,'REQ '+amt(x.req)].filter(Boolean).join(' · '))+'</span></div><div class="mu sm" style="margin-top:6px">'+esc(t('dup_in')+' '+a.map(y=>y.d.name).join(' · '))+'</div></div>'}).join('')+btn('close',t('done')))}
+function denSheet(){return OV('<h2 class="t" style="margin:0">'+esc(t('den_title'))+'</h2><div class="mu sm t">'+esc(t('den_desc'))+'</div><div class="g2">'+[0,1,2,3].map(i=>'<label><span class="mu sm t">'+esc(t('note_n',{n:i+1}))+'</span><div class="field"><input class="n" inputmode="numeric" maxlength="7" placeholder="0" value="'+(S.den[i]||'')+'"></div></label>').join('')+'</div><div class="sm t" id="err" style="color:var(--er)" hidden>'+esc(t('den_err'))+'</div><div class="g2">'+btn('close',t('cancel'))+btn('densave',t('save'),{p:1})+'</div>')}
+function toolsCard(){return '<section class="card"><div class="row"><div class="tile">'+ic('Calc')+'</div><div class="grow t"><h2>'+esc(t('tools_title'))+'</h2></div></div><div class="chips" style="margin-top:14px">'+[['den','den_title'],['fstats','fs_btn'],['backup','backup_export'],['bimport','backup_import'],['trash','trash_title'],['dups','dups_title']].map(([a,k])=>'<button class="chip" data-a="'+a+'">'+esc(t(k))+(a=='trash'&&S.trash.length?' ('+S.trash.length+')':'')+'</button>').join('')+'</div>'+(S.docs.some(d=>hasD(d.entries))?'':'<div class="mu sm t" style="margin-top:10px">'+esc(t('den_unset'))+'</div>')+'</section>'}
+function valLine(e){return hasD(e)?'<div class="ltr" style="font-weight:700;margin-top:6px">'+esc(t('value'))+': '+num(sum(cassVals(e)))+' '+esc(curOf(e))+'</div>':''}
+function devCard(e){const x=[...e].reverse().find(y=>y.rem);if(!x)return '';const d=denOf(x),th=k=>'<th>'+esc(t(k))+'</th>',rj=x.rejc||[0,0,0,0];
+ return '<div class="card"><h2 class="t" style="margin:0">'+esc(t('dev_title'))+'</h2><div class="mu xs ltr" style="margin:2px 0 12px">'+esc([fmtDate(x.date),x.time].filter(Boolean).join(' · '))+'</div><div class="tw sm0"><table class="tb"><thead><tr><th></th>'+(d?th('den_val'):'')+th('rem_l')+th('rej_l')+(d?th('value'):'')+'</tr></thead><tbody>'+x.rem.map((n,i)=>'<tr><td>'+esc(t('note_n',{n:i+1}))+'</td>'+(d?'<td>'+num(d[i])+'</td>':'')+'<td>'+num(n)+'</td><td>'+num(rj[i]||0)+'</td>'+(d?'<td>'+num(n*d[i])+'</td>':'')+'</tr>').join('')+'</tbody><tfoot><tr><td>'+esc(t('tot'))+'</td>'+(d?'<td></td>':'')+'<td>'+num(sum(x.rem))+'</td><td>'+num(sum(rj))+'</td>'+(d?'<td>'+num(x.rem.reduce((s,n,i)=>s+n*d[i],0))+'</td>':'')+'</tr></tfoot></table></div></div>'}
+function declCard(e){const m={};e.forEach(x=>{if(x.code=='DECLINED'){const k=x.arg||'?';m[k]=(m[k]||0)+1}});const ks=Object.keys(m).sort((a,b)=>m[b]-m[a]);if(!ks.length)return '';
+ return '<div class="card"><h2 class="t" style="margin:0 0 10px">'+esc(t('decl_title'))+'</h2>'+ks.map(k=>'<div class="row sm" style="gap:10px;padding:4px 0"><span class="grow ltr">'+esc(k)+'</span><b>'+m[k]+'</b></div>').join('')+'</div>'}
+Object.assign(D.ar,{n_CM:"عدّاد الجهاز يختلف عن الأوراق (الفرق: {a}). قد تكون هناك عمليات ناقصة في السجل.",dev_title:"حالة الكاسيتات عند آخر عملية",rem_l:"المتبقي",rej_l:"المرفوض",decl_title:"أسباب الرفض",mm_banner:"{n} عملية بها فروقات",mm_ok:"المبلغ وعدّادات الجهاز متطابقة في كل العمليات",f_mm:"فروقات",den_desc:"تُقرأ فئات الكاسيتات تلقائيًا من سجل الجهاز. هذه القيم احتياطية للملفات التي لا تحتويها.",den_unset_t:"لا توجد فئات في هذا الملف"});
+Object.assign(D.en,{n_CM:"Machine counter differs from notes (delta: {a}). The log may be missing operations.",dev_title:"Cassette status at last operation",rem_l:"Remaining",rej_l:"Rejected",decl_title:"Decline reasons",mm_banner:"{n} with differences",mm_ok:"Amount and machine counters match everywhere",f_mm:"Differences",den_desc:"Cassette values are read automatically from the machine log. These are a fallback for files without them.",den_unset_t:"No cassette values in this file"});
+Object.assign(D.fr,{n_CM:"Le compteur du DAB diffère des billets (écart : {a}). Des opérations manquent peut-être au journal.",dev_title:"État des cassettes à la dernière opération",rem_l:"Restant",rej_l:"Rejeté",decl_title:"Motifs de refus",mm_banner:"{n} avec des écarts",mm_ok:"Montant et compteurs du DAB cohérents partout",f_mm:"Écarts",den_desc:"Les valeurs sont lues automatiquement du journal. Celles-ci servent de secours pour les fichiers qui n'en contiennent pas.",den_unset_t:"Aucune valeur de cassette dans ce fichier"});
+const SH3={den:denSheet,days:daysSheet,fstats:fsSheet,trash:trashSheet,dups:dupsSheet};
+function after3(){if(S.sheet=='days')daysUpdate()}
+const DF={dfrom:'from',dto:'to',dhf:'hf',dht:'ht'};
+function act3(a,el){const d=el.dataset;
+ if(a=='den'){S.sheet='den';render();return 1}
+ if(a=='densave'){const v=[...document.querySelectorAll('#layer .n')].map(i=>+i.value||0);if(!(v.every(x=>x>0)||v.every(x=>!x))){$('#err').hidden=false;return 1}
+  S.den=v;sset('den',JSON.stringify(v));S.sheet=null;render();toast('den_saved');return 1}
+ if(a=='days'){S.df={from:'',to:'',hf:'',ht:''};S.sheet='days';render();return 1}
+ if(a=='dclr'){S.df={from:'',to:'',hf:'',ht:''};Object.keys(DF).forEach(i=>{const e=$('#'+i);if(e)e.value=''});daysUpdate();return 1}
+ if(a=='printd'){printReport(rname()+' — '+t('days_title'),dayFilter(S.entries));return 1}
+ if(a=='printr'){printReport(rname(),S.entries);return 1}
+ if(a=='mmf'){S.onlyV=false;S.onlyM=true;filters();list();return 1}
+ if(a=='fstats'){const sel=S.sel&&S.ids.size,ids=sel?[...S.ids]:S.docs.filter(x=>S.fol?fid(x)===S.fol:true).map(x=>x.id);
+  if(!ids.length){toast('docs_empty');return 1}
+  const cf=S.fol&&S.folders.find(f=>f.id==S.fol);S.fs=ids;S.fsTitle=sel?t('sel_n',{n:ids.length}):cf?cf.name:t('fs_all');S.sheet='fstats';render();return 1}
+ if(a=='fsx'){saveFs();return 1}
+ if(a=='printf'){printReport(S.fsTitle,fsDocs().flatMap(x=>x.entries));return 1}
+ if(a=='backup'){backup();return 1}
+ if(a=='bimport'){$('#bfile').click();return 1}
+ if(a=='trash'){S.sheet='trash';render();return 1}
+ if(a=='restore'){restoreTrash({id:d.id});return 1}
+ if(a=='emptytrash'){S.trash=[];sset('trash','[]');render();return 1}
+ if(a=='undo'){restoreTrash({at:S.lastDel});$('#toast').innerHTML='';return 1}
+ if(a=='dups'){S.sheet='dups';render();return 1}
+ if(a=='addacct'){addAccount();return 1}
+ if(a=='switchacct'){S.sheet=null;const x=S.accts.find(y=>y.uid==d.uid);
+  if(x&&(!S.user||S.user.uid!=x.uid)){activate(x.uid,false);toast('acct_switched',{n:x.email||x.name})}else render();return 1}
+ return 0}
 // ── Cloud sync (Firebase) — one set of documents per account ──
 function pack(){return JSON.stringify({v:3,docs:S.docs,del:S.del,folders:S.folders})}
 function unpack(json,ts){try{const p=JSON.parse(json);
@@ -487,42 +643,82 @@ function unpack(json,ts){try{const p=JSON.parse(json);
 function merge(a,b){const del={...a.del};for(const k in b.del)del[k]=Math.max(del[k]||0,b.del[k]);
  const mk=(x,y)=>{const m={};[...(x||[]),...(y||[])].forEach(d=>{if(!m[d.id]||d.ts>m[d.id].ts)m[d.id]=d});return Object.values(m).filter(d=>!(del[d.id]>=d.ts))};
  return{docs:mk(a.docs,b.docs),folders:mk(a.folders,b.folders),del}}
-function push(){if(!S.user||!window.FB)return;clearTimeout(pt);pt=setTimeout(async()=>{try{await FB.save(S.user.uid,TS,pack())}catch(e){toast('sync_err')}},800)}
-async function login(){try{await FB.login()}catch(e){if(!e||(e.code!='auth/popup-closed-by-user'&&e.code!='auth/cancelled-popup-request'))toast('login_err')}}
-async function logout(){clearTimeout(pt);try{await FB.logout()}catch(e){}
- S.docs=[];S.del={};S.folders=[];S.fol=null;S.sel=false;S.ids.clear();S.cur=null;S.entries=[];TS=0;['docs','del','folders','cur','uid','entries'].forEach(sdel);sset('ts','0');
- S.sheet=null;S.q='';S.dq='';S.onlyV=false;go(0)}
-function fbInit(){S.fb=true;FB.onUser(async u=>{S.user=u?{uid:u.uid,name:u.displayName||'',email:u.email||'',photo:u.photo||u.photoURL||''}:null;render();if(!u)return;
- // documents of another account must never mix into this one
- const prev=sget('uid');
- if(prev&&prev!=u.uid){S.docs=[];S.del={};S.folders=[];S.fol=null;S.sel=false;S.ids.clear();S.cur=null;S.entries=[];sdel('cur');S.screen=0}
- sset('uid',u.uid);
- try{const c=await FB.load(u.uid),remote=c?unpack(c.json,c.ts):{docs:[],del:{}};
+Object.assign(D.ar,{add_acct:"إضافة حساب آخر",acct_switched:"تم التبديل إلى {n}",acct_dup:"هذا الحساب مضاف بالفعل",acct_active:"نشط",acct_desc2:"يمكنك إضافة أكثر من حساب والتبديل بينها دون تسجيل الخروج، ولكل حساب مستنداته الخاصة. تسجيل الخروج يزيل الحساب الحالي من هذا المتصفح فقط (تبقى بياناته في حسابه)."});
+Object.assign(D.en,{add_acct:"Add another account",acct_switched:"Switched to {n}",acct_dup:"This account is already added",acct_active:"Active",acct_desc2:"You can add several accounts and switch between them without signing out. Each account keeps its own documents. Signing out removes the current account from this browser only (its data stays in the account)."});
+Object.assign(D.fr,{add_acct:"Ajouter un autre compte",acct_switched:"Passé à {n}",acct_dup:"Ce compte est déjà ajouté",acct_active:"Actif",acct_desc2:"Vous pouvez ajouter plusieurs comptes et passer de l'un à l'autre sans vous déconnecter. Chaque compte garde ses propres documents. La déconnexion retire le compte actuel de ce navigateur uniquement (ses données restent dans le compte)."});
+S.accts=(a=>Array.isArray(a)?a.filter(x=>x&&x.uid&&x.slot):[])(jget('accts',[]));
+S.user=S.accts.find(x=>NS=='u_'+x.uid+'_')||null;S.ready=false;
+function saveReg(){try{LS&&LS.setItem('accts',JSON.stringify(S.accts));LS&&LS.setItem('slots',JSON.stringify(S.accts.map(a=>a.slot)))}catch(e){}}
+function push(){if(!S.user||!window.FB||!S.ready)return;clearTimeout(pt);const u=S.user,j=pack(),ts=TS;pt=setTimeout(async()=>{try{await FB.save(u.slot,u.uid,ts,j)}catch(e){toast('sync_err')}},800)}
+function loadLocal(){const d=jget('docs',[]);S.docs=Array.isArray(d)?d.filter(x=>x&&x.id&&Array.isArray(x.entries)):[];
+ const fl=jget('folders',[]);S.folders=Array.isArray(fl)?fl.filter(x=>x&&x.id&&x.name):[];
+ const dl=jget('del',{});S.del=dl&&typeof dl=='object'&&!Array.isArray(dl)?dl:{};
+ const dn=jget('den',null);S.den=Array.isArray(dn)&&dn.length==4?dn.map(n=>+n||0):[0,0,0,0];
+ const tr=jget('trash',[]);S.trash=Array.isArray(tr)?tr.filter(x=>x&&x.d&&x.d.id):[];
+ TS=+sget('ts')||0;const cd=S.docs.find(x=>x.id==sget('cur'));S.cur=cd?cd.id:null;S.entries=cd?cd.entries:[];
+ Object.assign(S,{fol:null,sel:false,sheet:null,q:'',dq:'',onlyV:false,onlyM:false,screen:0,idx:0,delId:null,fs:[],lastDel:0,homeErr:null,homeInfo:null});S.ids.clear();
+ if(location.hash)history.replaceState(null,'',location.pathname+location.search)}
+// switch the active account (its documents are kept in a separate local store)
+async function activate(uid,keep){const a=S.accts.find(x=>x.uid==uid)||null;
+ NS=a?'u_'+a.uid+'_':'';try{LS&&LS.setItem('active',a?a.uid:'guest')}catch(e){}
+ S.user=a;S.ready=false;if(!keep)loadLocal();render();if(a)await syncActive()}
+async function syncActive(){const u=S.user;if(!u)return;
+ try{const c=await FB.load(u.slot,u.uid),remote=c?unpack(c.json,c.ts):{docs:[],del:{},folders:[]};
+  if(S.user!==u)return;
   const m=merge({docs:S.docs,del:S.del,folders:S.folders},remote);
   S.docs=m.docs;S.del=m.del;S.folders=m.folders;
   const cd=curDoc();if(cd){S.entries=cd.entries}else{S.cur=null;S.entries=[];S.screen=0}
-  const mr=merge(remote,{docs:[],del:{},folders:[]}),fk=a=>JSON.stringify((a||[]).map(d=>d.id+':'+d.ts).sort()),needPush=fk(mr.folders)!=fk(S.folders)||JSON.stringify(mr.docs.map(d=>d.id+':'+d.ts).sort())!=JSON.stringify(S.docs.map(d=>d.id+':'+d.ts).sort())||JSON.stringify(remote.del)!=JSON.stringify(S.del);
-  TS=Date.now();sset('docs',JSON.stringify(S.docs));sset('del',JSON.stringify(S.del));sset('ts',String(TS));
-  sset('folders',JSON.stringify(S.folders));
-  if(needPush)await FB.save(u.uid,TS,pack());
-  render();toast('synced')}
- catch(e){toast('sync_err')}})}
+  const mr=merge(remote,{docs:[],del:{},folders:[]}),fk=a=>JSON.stringify((a||[]).map(d=>d.id+':'+d.ts).sort()),needPush=fk(mr.folders)!=fk(S.folders)||fk(mr.docs)!=fk(S.docs)||JSON.stringify(remote.del||{})!=JSON.stringify(S.del);
+  TS=Date.now();sset('docs',JSON.stringify(S.docs));sset('del',JSON.stringify(S.del));sset('ts',String(TS));sset('folders',JSON.stringify(S.folders));
+  if(needPush)await FB.save(u.slot,u.uid,TS,pack());
+  if(S.user!==u)return;
+  S.ready=true;render();toast('synced')}
+ catch(e){if(S.user===u)toast('sync_err')}}
+async function addAccount(){let r;
+ try{r=await FB.add()}catch(e){if(!e||(e.code!='auth/popup-closed-by-user'&&e.code!='auth/cancelled-popup-request'))toast('login_err');return}
+ const u=r.user,ex=S.accts.find(x=>x.uid==u.uid);
+ if(ex){await FB.drop(r.slot,true);S.sheet=null;await activate(ex.uid,!!S.user&&S.user.uid==ex.uid);toast('acct_dup');return}
+ // documents made before the first sign-in (guest mode) move into the new account
+ if(!S.user&&LS)try{DK.forEach(k=>{const v=LS.getItem(k),nk='u_'+u.uid+'_'+k;if(v!=null&&LS.getItem(nk)==null){LS.setItem(nk,v);LS.removeItem(k)}})}catch(e){}
+ S.accts.push({slot:r.slot,uid:u.uid,name:u.displayName||'',email:u.email||'',photo:u.photoURL||''});saveReg();S.sheet=null;await activate(u.uid,false)}
+const login=()=>addAccount();
+async function logout(){const u=S.user;if(!u)return;clearTimeout(pt);
+ try{await FB.drop(u.slot,true)}catch(e){}
+ ['docs','del','folders','cur','entries','trash','den','ts'].forEach(sdel);
+ S.accts=S.accts.filter(x=>x.uid!=u.uid);saveReg();S.sheet=null;
+ const nx=S.accts[0]||null;await activate(nx?nx.uid:null,false)}
+const avHtml=u=>'<div class="av ib">'+(u.photo?'<img src="'+esc(u.photo)+'" alt="" referrerpolicy="no-referrer">':esc((u.name||u.email||'?').charAt(0).toUpperCase()))+'</div>';
+function acctSheet(){const rows=S.accts.map(u=>{const on=S.user&&S.user.uid==u.uid;
+  return '<button class="lang'+(on?' on':'')+'" data-a="switchacct" data-uid="'+esc(u.uid)+'"><span class="who" style="flex:1;min-width:0">'+avHtml(u)+'<span class="grow t" style="text-align:start"><b>'+esc(u.name||u.email)+'</b><span class="mu sm ltr" style="display:block;font-weight:400">'+esc(u.email)+'</span></span></span>'+(on?'<span class="badge t" style="--c:var(--ok)">'+esc(t('acct_active'))+'</span>':'')+'</button>'}).join('');
+ return OV('<h2 class="t" style="margin:0">'+esc(t('account'))+'</h2><div class="mu sm t">'+esc(t('acct_desc2'))+'</div>'+rows+btn('addacct','+ '+t('add_acct'))+'<div class="g2">'+btn('close',t('cancel'))+(S.user?btn('logout',t('signout'),{p:1}):'')+'</div>')}
+async function fbInit(){S.fb=true;render();
+ let slots=jget('slots',null);if(!Array.isArray(slots)||!slots.length)slots=['[DEFAULT]'];
+ const us=await Promise.all(slots.map(s=>FB.user(s).catch(()=>null))),reg=[],seen=new Set();
+ for(let i=0;i<slots.length;i++){const u=us[i];
+  if(u&&!seen.has(u.uid)){seen.add(u.uid);const o=S.accts.find(x=>x.uid==u.uid)||{};reg.push({slot:slots[i],uid:u.uid,name:u.displayName||o.name||'',email:u.email||o.email||'',photo:u.photoURL||o.photo||''})}
+  else await FB.drop(slots[i],!!u)}
+ S.accts=reg;saveReg();
+ const want=LS&&LS.getItem('active'),act=reg.find(x=>x.uid==want)||reg[0]||null;
+ await activate(act?act.uid:null,!!act&&!!S.user&&S.user.uid==act.uid)}
 window.addEventListener('fbready',fbInit);if(window.FB)fbInit();
 render();
 </script>
 <script type="module">
-import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import {initializeApp,deleteApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {getFirestore,doc,getDoc,getDocs,collection,writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-const app=initializeApp({apiKey:"AIzaSyC3MMC-7dGU3ztshP0mYUWrV_c1Zm8njoc",authDomain:"youyou-f869f.firebaseapp.com",projectId:"youyou-f869f",storageBucket:"youyou-f869f.firebasestorage.app",messagingSenderId:"185167516974",appId:"1:185167516974:web:6d44fc5c98e63b554696bf"});
-const auth=getAuth(app),db=getFirestore(app);
+const cfg={apiKey:"AIzaSyC3MMC-7dGU3ztshP0mYUWrV_c1Zm8njoc",authDomain:"youyou-f869f.firebaseapp.com",projectId:"youyou-f869f",storageBucket:"youyou-f869f.firebasestorage.app",messagingSenderId:"185167516974",appId:"1:185167516974:web:6d44fc5c98e63b554696bf"};
+// every signed-in account has its own app: separate Auth session, separate Firestore connection
+const apps={};
+function get(slot){if(apps[slot])return apps[slot];const app=slot=='[DEFAULT]'?initializeApp(cfg):initializeApp(cfg,slot);return apps[slot]={app,auth:getAuth(app),db:getFirestore(app)}}
 window.FB={
- onUser:f=>onAuthStateChanged(auth,f),
- login:()=>signInWithPopup(auth,new GoogleAuthProvider()),
- logout:()=>signOut(auth),
- async load(uid){const m=await getDoc(doc(db,'users',uid));if(!m.exists())return null;const d=m.data(),cs=await getDocs(collection(db,'users',uid,'chunks')),parts=[];
+ user:slot=>new Promise(res=>{const a=get(slot),un=onAuthStateChanged(a.auth,u=>{un();res(u)},()=>res(null))}),
+ async add(){const slot='a'+Date.now().toString(36),a=get(slot),p=new GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});
+  try{const c=await signInWithPopup(a.auth,p);return{slot,user:c.user}}catch(e){await FB.drop(slot,false);throw e}},
+ async drop(slot,out){const a=apps[slot];if(!a)return;try{if(out)await signOut(a.auth)}catch(e){}try{await deleteApp(a.app)}catch(e){}delete apps[slot]},
+ async load(slot,uid){const db=get(slot).db,m=await getDoc(doc(db,'users',uid));if(!m.exists())return null;const d=m.data(),cs=await getDocs(collection(db,'users',uid,'chunks')),parts=[];
   cs.forEach(c=>{parts[+c.id]=c.data().d});return{ts:d.ts,json:parts.slice(0,d.n).join('')}},
- async save(uid,ts,json){const CH=400000,parts=[];for(let i=0;i<json.length;i+=CH)parts.push(json.slice(i,i+CH));
+ async save(slot,uid,ts,json){const db=get(slot).db,CH=400000,parts=[];for(let i=0;i<json.length;i+=CH)parts.push(json.slice(i,i+CH));
   const old=await getDocs(collection(db,'users',uid,'chunks')),b=writeBatch(db);
   parts.forEach((d,i)=>b.set(doc(db,'users',uid,'chunks',String(i)),{d}));
   old.forEach(c=>{if(+c.id>=parts.length)b.delete(c.ref)});
